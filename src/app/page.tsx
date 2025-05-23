@@ -179,21 +179,23 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Mobile FABs */}
-      <Button
-        onClick={() => setIsIncomeFormOpen(true)}
-        className="fixed bottom-20 right-6 h-16 w-16 rounded-full shadow-xl md:hidden bg-green-500 hover:bg-green-600 text-white"
-        aria-label="Add new income"
-      >
-        <Plus className="h-8 w-8" />
-      </Button>
-      <Button
-        onClick={() => setIsExpenseFormOpen(true)}
-        className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-xl md:hidden bg-red-500 hover:bg-red-600 text-white"
-        aria-label="Add new expense"
-      >
-        <Minus className="h-8 w-8" />
-      </Button>
+      {/* Mobile FABs Container */}
+      <div className="fixed bottom-6 right-6 md:hidden flex space-x-4 z-50">
+        <Button
+          onClick={() => setIsIncomeFormOpen(true)}
+          className="h-16 w-16 rounded-full shadow-xl bg-green-500 hover:bg-green-600 text-white"
+          aria-label="Add new income"
+        >
+          <Plus className="h-8 w-8" />
+        </Button>
+        <Button
+          onClick={() => setIsExpenseFormOpen(true)}
+          className="h-16 w-16 rounded-full shadow-xl bg-red-500 hover:bg-red-600 text-white"
+          aria-label="Add new expense"
+        >
+          <Minus className="h-8 w-8" />
+        </Button>
+      </div>
 
       <ExpenseFormDialog
         isOpen={isExpenseFormOpen}
