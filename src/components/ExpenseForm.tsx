@@ -56,11 +56,8 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
         .filter((r) => r.toLowerCase().includes(reasonInput.toLowerCase()))
         .slice(0, 5); // Show top 5 suggestions
       setSuggestedReasons(filtered);
-      // Note: isSuggestionsOpen is now primarily controlled by onChange and handleReasonSelect
     } else {
       setSuggestedReasons([]);
-      // Also ensure popover closes if input becomes empty
-      setIsSuggestionsOpen(false); 
     }
   }, [reasonInput, uniqueReasons]);
 
@@ -72,28 +69,24 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
     await onSubmit(dataToSubmit);
     form.reset({ amount: NaN, reason: "" });
     setReasonInput("");
-    setIsSuggestionsOpen(false); // Ensure popover is closed after submit
+    setIsSuggestionsOpen(false);
   };
 
   const handleReasonSelect = (reason: string) => {
     form.setValue("reason", reason, { shouldValidate: true });
     setReasonInput(reason);
-    setIsSuggestionsOpen(false); // Explicitly close popover on selection
+    setIsSuggestionsOpen(false);
   };
 
   const handleReasonKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter") {
       if (isSuggestionsOpen && suggestedReasons.length === 1) {
-        event.preventDefault(); // Prevent default Enter behavior (newline/submit)
-        handleReasonSelect(suggestedReasons[0]); // Select the suggestion
+        event.preventDefault(); 
+        handleReasonSelect(suggestedReasons[0]); 
       } else if (!event.shiftKey) { 
-        // If not Shift+Enter (which allows newline)
-        // This means: popover is closed, or it's open with 0 or >1 suggestions.
-        // In these cases, Enter (without Shift) should submit the form.
-        event.preventDefault(); // Prevent newline in textarea
-        await form.handleSubmit(handleFormSubmit)(); // Submit the form
+        event.preventDefault(); 
+        await form.handleSubmit(handleFormSubmit)(); 
       }
-      // If Shift+Enter, default behavior (newline) is allowed because no preventDefault is called.
     }
   };
 
@@ -112,6 +105,7 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                   step="0.01"
                   placeholder="0.00"
                   {...field}
+                  value={isNaN(field.value) ? '' : field.value}
                   aria-required="true"
                 />
               </FormControl>
@@ -135,14 +129,13 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                       value={reasonInput}
                       onChange={(e) => {
                         const newValue = e.target.value;
-                        field.onChange(e); // Update RHF state
-                        setReasonInput(newValue); // Update local state
+                        field.onChange(e); 
+                        setReasonInput(newValue); 
 
                         if (newValue.length > 0) {
                           const filteredOnChange = uniqueReasons
                             .filter((r) => r.toLowerCase().includes(newValue.toLowerCase()))
                             .slice(0, 5);
-                          // setSuggestedReasons(filteredOnChange); // Done by useEffect
                           if (filteredOnChange.length > 0) {
                             setIsSuggestionsOpen(true); 
                           } else {
