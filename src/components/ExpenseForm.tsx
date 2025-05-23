@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -36,19 +37,18 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: undefined,
+      amount: NaN, // Initialize as NaN to keep it controlled and visually empty
       reason: "",
     },
   });
 
-  const amountInputRef = React.useRef<HTMLInputElement>(null);
   const [reasonInput, setReasonInput] = React.useState("");
   const [suggestedReasons, setSuggestedReasons] = React.useState<string[]>([]);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
 
   React.useEffect(() => {
-    amountInputRef.current?.focus();
-  }, []);
+    form.setFocus('amount');
+  }, [form.setFocus]);
 
   React.useEffect(() => {
     if (reasonInput.length > 0) {
@@ -64,8 +64,13 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
   }, [reasonInput, uniqueReasons]);
 
   const handleFormSubmit = async (values: ExpenseFormValues) => {
-    await onSubmit(values);
-    form.reset();
+    // Filter out NaN amount before submitting if it was never touched
+    const dataToSubmit = {
+        ...values,
+        amount: isNaN(values.amount) ? 0 : values.amount, // Or handle as error if preferred
+    };
+    await onSubmit(dataToSubmit);
+    form.reset(); // This will reset to NaN and ""
     setReasonInput("");
   };
 
@@ -90,8 +95,7 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  {...field}
-                  ref={amountInputRef}
+                  {...field} // field.ref is now correctly passed from RHF
                   aria-required="true"
                 />
               </FormControl>
@@ -111,10 +115,10 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                   <FormControl>
                     <Textarea
                       placeholder="e.g., Groceries, Coffee"
-                      {...field}
-                      value={reasonInput}
-                      onChange={(e) => {
-                        field.onChange(e); // Propagate to RHF
+                      {...field} // RHF field props
+                      value={reasonInput} // Override value for local control
+                      onChange={(e) => { // Override onChange for local control + RHF
+                        field.onChange(e); 
                         setReasonInput(e.target.value);
                       }}
                       rows={2}
@@ -140,16 +144,6 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                 )}
               </Popover>
               <FormMessage />
-              {/* 
-                Note for AI Integration:
-                The 'suggestReason' AI flow could be called within the useEffect hook 
-                that currently filters 'uniqueReasons'.
-                Example:
-                if (reasonInput.length > 1) {
-                  const aiSuggestions = await suggestReasonFlow({ currentInput: reasonInput, historicalReasons: uniqueReasons });
-                  setSuggestedReasons(aiSuggestions.suggestions || []);
-                }
-              */}
             </FormItem>
           )}
         />
