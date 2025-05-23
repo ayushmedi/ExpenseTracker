@@ -52,10 +52,7 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueExpenseType
       });
       setExpenseTypeInput(transaction.expense_type || ""); // Changed from reasonInput
       setTimeout(() => {
-        const amountField = form.control.fieldsRef.current.amount?.ref as HTMLElement | undefined;
-        if (amountField && typeof amountField.focus === 'function') {
-          amountField.focus();
-        }
+        form.setFocus('amount');
       }, 0);
     }
   }, [isEditing, transaction, form]);
@@ -251,3 +248,4 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueExpenseType
     </div>
   );
 }
+
