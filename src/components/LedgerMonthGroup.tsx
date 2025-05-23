@@ -15,8 +15,8 @@ interface LedgerMonthGroupProps {
   onUpdateExpense: (id: string, data: ExpenseUpdateDto) => Promise<void>;
   onUpdateIncome: (id: string, data: IncomeUpdateDto) => Promise<void>;
   isLoadingWhileUpdating?: boolean;
-  uniqueExpenseReasons: string[];
-  uniqueIncomeReasons: string[];
+  uniqueExpenseTypes: string[]; // Renamed from uniqueExpenseReasons
+  uniqueIncomeExpenseTypes: string[]; // Renamed from uniqueIncomeReasons
 }
 
 export function LedgerMonthGroup({ 
@@ -25,8 +25,8 @@ export function LedgerMonthGroup({
   onUpdateExpense,
   onUpdateIncome,
   isLoadingWhileUpdating, 
-  uniqueExpenseReasons,
-  uniqueIncomeReasons
+  uniqueExpenseTypes, // Renamed prop
+  uniqueIncomeExpenseTypes // Renamed prop
 }: LedgerMonthGroupProps) {
   if (transactions.length === 0) {
     return null;
@@ -55,7 +55,7 @@ export function LedgerMonthGroup({
               key={transaction.id} 
               transaction={transaction} 
               onUpdateTransaction={transaction.type === 'expense' ? onUpdateExpense : onUpdateIncome}
-              uniqueReasonsForType={transaction.type === 'expense' ? uniqueExpenseReasons : uniqueIncomeReasons}
+              uniqueExpenseTypesForType={transaction.type === 'expense' ? uniqueExpenseTypes : uniqueIncomeExpenseTypes} // Pass appropriate unique types
               isLoadingWhileUpdating={isLoadingWhileUpdating}
             />
           ))}

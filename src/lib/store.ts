@@ -3,22 +3,22 @@ import type { Expense, ExpenseCreateDto, Income, IncomeCreateDto } from './types
 import { getMonthBucket } from './utils';
 
 const EXPENSES_STORAGE_KEY = 'cashflow_expenses';
-const EXPENSE_REASONS_STORAGE_KEY = 'cashflow_expense_reasons';
+const EXPENSE_TYPES_STORAGE_KEY = 'cashflow_expense_types'; // Changed from cashflow_expense_reasons
 const INCOME_STORAGE_KEY = 'cashflow_incomes';
-const INCOME_REASONS_STORAGE_KEY = 'cashflow_income_reasons';
+const INCOME_TYPES_STORAGE_KEY = 'cashflow_income_types'; // Changed from cashflow_income_reasons
 
 export interface ExpenseRepository {
   addExpense(data: ExpenseCreateDto): Promise<Expense>;
   getAllExpenses(): Promise<Expense[]>;
-  getUniqueReasons(): Promise<string[]>;
-  updateExpense(id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>): Promise<Expense | null>;
+  getUniqueExpenseTypes(): Promise<string[]>; // Changed from getUniqueReasons
+  updateExpense(id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'expense_type'>>): Promise<Expense | null>; // Changed from reason
 }
 
 export interface IncomeRepository {
   addIncome(data: IncomeCreateDto): Promise<Income>;
   getAllIncomes(): Promise<Income[]>;
-  getUniqueReasons(): Promise<string[]>;
-  updateIncome(id: string, data: Partial<Pick<IncomeCreateDto, 'amount' | 'reason'>>): Promise<Income | null>;
+  getUniqueExpenseTypes(): Promise<string[]>; // Changed from getUniqueReasons
+  updateIncome(id: string, data: Partial<Pick<IncomeCreateDto, 'amount' | 'expense_type'>>): Promise<Income | null>; // Changed from reason
 }
 
 class LocalStorageExpenseRepository implements ExpenseRepository {
@@ -33,15 +33,15 @@ class LocalStorageExpenseRepository implements ExpenseRepository {
     localStorage.setItem(EXPENSES_STORAGE_KEY, JSON.stringify(expenses));
   }
 
-  private async _getReasonsFromStorage(): Promise<string[]> {
+  private async _getExpenseTypesFromStorage(): Promise<string[]> { // Changed from _getReasonsFromStorage
     if (typeof window === 'undefined') return [];
-    const storedReasons = localStorage.getItem(EXPENSE_REASONS_STORAGE_KEY);
-    return storedReasons ? JSON.parse(storedReasons) : [];
+    const storedExpenseTypes = localStorage.getItem(EXPENSE_TYPES_STORAGE_KEY); // Changed key
+    return storedExpenseTypes ? JSON.parse(storedExpenseTypes) : [];
   }
 
-  private async _saveReasonsToStorage(reasons: string[]): Promise<void> {
+  private async _saveExpenseTypesToStorage(expenseTypes: string[]): Promise<void> { // Changed from _saveReasonsToStorage
     if (typeof window === 'undefined') return;
-    localStorage.setItem(EXPENSE_REASONS_STORAGE_KEY, JSON.stringify(reasons));
+    localStorage.setItem(EXPENSE_TYPES_STORAGE_KEY, JSON.stringify(expenseTypes)); // Changed key
   }
 
   async addExpense(data: ExpenseCreateDto): Promise<Expense> {
@@ -56,12 +56,12 @@ class LocalStorageExpenseRepository implements ExpenseRepository {
     expenses.push(newExpense);
     await this._saveExpensesToStorage(expenses);
 
-    if (data.reason) {
-      const reasons = await this.getUniqueReasons();
-      const lowerCaseReason = data.reason.toLowerCase().trim();
-      if (lowerCaseReason && !reasons.map(r => r.toLowerCase()).includes(lowerCaseReason)) {
-        reasons.push(data.reason.trim());
-        await this._saveReasonsToStorage(reasons);
+    if (data.expense_type) { // Changed from reason
+      const expenseTypes = await this.getUniqueExpenseTypes(); // Changed from getUniqueReasons
+      const lowerCaseExpenseType = data.expense_type.toLowerCase().trim(); // Changed from reason
+      if (lowerCaseExpenseType && !expenseTypes.map(r => r.toLowerCase()).includes(lowerCaseExpenseType)) {
+        expenseTypes.push(data.expense_type.trim()); // Changed from reason
+        await this._saveExpenseTypesToStorage(expenseTypes); // Changed from _saveReasonsToStorage
       }
     }
     return newExpense;
@@ -72,11 +72,11 @@ class LocalStorageExpenseRepository implements ExpenseRepository {
     return expenses.sort((a, b) => b.timestamp - a.timestamp);
   }
 
-  async getUniqueReasons(): Promise<string[]> {
-    return this._getReasonsFromStorage();
+  async getUniqueExpenseTypes(): Promise<string[]> { // Changed from getUniqueReasons
+    return this._getExpenseTypesFromStorage(); // Changed from _getReasonsFromStorage
   }
 
-  async updateExpense(id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>): Promise<Expense | null> {
+  async updateExpense(id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'expense_type'>>): Promise<Expense | null> { // Changed from reason
     let expenses = await this._getExpensesFromStorage();
     const expenseIndex = expenses.findIndex(exp => exp.id === id);
 
@@ -88,17 +88,17 @@ class LocalStorageExpenseRepository implements ExpenseRepository {
       ...expenses[expenseIndex],
       ...data,
       amount: data.amount !== undefined ? Number(data.amount) : expenses[expenseIndex].amount,
-      reason: data.reason !== undefined ? (data.reason || undefined) : expenses[expenseIndex].reason,
+      expense_type: data.expense_type !== undefined ? (data.expense_type || undefined) : expenses[expenseIndex].expense_type, // Changed from reason
     };
     expenses[expenseIndex] = updatedExpense;
     await this._saveExpensesToStorage(expenses);
 
-    if (updatedExpense.reason) {
-      const reasons = await this.getUniqueReasons();
-      const lowerCaseReason = updatedExpense.reason.toLowerCase().trim();
-      if (lowerCaseReason && !reasons.map(r => r.toLowerCase()).includes(lowerCaseReason)) {
-        reasons.push(updatedExpense.reason.trim());
-        await this._saveReasonsToStorage(reasons);
+    if (updatedExpense.expense_type) { // Changed from reason
+      const expenseTypes = await this.getUniqueExpenseTypes(); // Changed from getUniqueReasons
+      const lowerCaseExpenseType = updatedExpense.expense_type.toLowerCase().trim(); // Changed from reason
+      if (lowerCaseExpenseType && !expenseTypes.map(r => r.toLowerCase()).includes(lowerCaseExpenseType)) {
+        expenseTypes.push(updatedExpense.expense_type.trim()); // Changed from reason
+        await this._saveExpenseTypesToStorage(expenseTypes); // Changed from _saveReasonsToStorage
       }
     }
     return updatedExpense;
@@ -117,15 +117,15 @@ class LocalStorageIncomeRepository implements IncomeRepository {
     localStorage.setItem(INCOME_STORAGE_KEY, JSON.stringify(incomes));
   }
 
-  private async _getReasonsFromStorage(): Promise<string[]> {
+  private async _getExpenseTypesFromStorage(): Promise<string[]> { // Changed from _getReasonsFromStorage
     if (typeof window === 'undefined') return [];
-    const storedReasons = localStorage.getItem(INCOME_REASONS_STORAGE_KEY);
-    return storedReasons ? JSON.parse(storedReasons) : [];
+    const storedExpenseTypes = localStorage.getItem(INCOME_TYPES_STORAGE_KEY); // Changed key
+    return storedExpenseTypes ? JSON.parse(storedExpenseTypes) : [];
   }
 
-  private async _saveReasonsToStorage(reasons: string[]): Promise<void> {
+  private async _saveExpenseTypesToStorage(expenseTypes: string[]): Promise<void> { // Changed from _saveReasonsToStorage
     if (typeof window === 'undefined') return;
-    localStorage.setItem(INCOME_REASONS_STORAGE_KEY, JSON.stringify(reasons));
+    localStorage.setItem(INCOME_TYPES_STORAGE_KEY, JSON.stringify(expenseTypes)); // Changed key
   }
 
   async addIncome(data: IncomeCreateDto): Promise<Income> {
@@ -140,12 +140,12 @@ class LocalStorageIncomeRepository implements IncomeRepository {
     incomes.push(newIncome);
     await this._saveIncomesToStorage(incomes);
 
-    if (data.reason) {
-      const reasons = await this.getUniqueReasons();
-      const lowerCaseReason = data.reason.toLowerCase().trim();
-      if (lowerCaseReason && !reasons.map(r => r.toLowerCase()).includes(lowerCaseReason)) {
-        reasons.push(data.reason.trim());
-        await this._saveReasonsToStorage(reasons);
+    if (data.expense_type) { // Changed from reason
+      const expenseTypes = await this.getUniqueExpenseTypes(); // Changed from getUniqueReasons
+      const lowerCaseExpenseType = data.expense_type.toLowerCase().trim(); // Changed from reason
+      if (lowerCaseExpenseType && !expenseTypes.map(r => r.toLowerCase()).includes(lowerCaseExpenseType)) {
+        expenseTypes.push(data.expense_type.trim()); // Changed from reason
+        await this._saveExpenseTypesToStorage(expenseTypes); // Changed from _saveReasonsToStorage
       }
     }
     return newIncome;
@@ -156,11 +156,11 @@ class LocalStorageIncomeRepository implements IncomeRepository {
     return incomes.sort((a, b) => b.timestamp - a.timestamp);
   }
 
-  async getUniqueReasons(): Promise<string[]> {
-    return this._getReasonsFromStorage();
+  async getUniqueExpenseTypes(): Promise<string[]> { // Changed from getUniqueReasons
+    return this._getExpenseTypesFromStorage(); // Changed from _getReasonsFromStorage
   }
 
-  async updateIncome(id: string, data: Partial<Pick<IncomeCreateDto, 'amount' | 'reason'>>): Promise<Income | null> {
+  async updateIncome(id: string, data: Partial<Pick<IncomeCreateDto, 'amount' | 'expense_type'>>): Promise<Income | null> { // Changed from reason
     let incomes = await this._getIncomesFromStorage();
     const incomeIndex = incomes.findIndex(inc => inc.id === id);
 
@@ -172,17 +172,17 @@ class LocalStorageIncomeRepository implements IncomeRepository {
       ...incomes[incomeIndex],
       ...data,
       amount: data.amount !== undefined ? Number(data.amount) : incomes[incomeIndex].amount,
-      reason: data.reason !== undefined ? (data.reason || undefined) : incomes[incomeIndex].reason,
+      expense_type: data.expense_type !== undefined ? (data.expense_type || undefined) : incomes[incomeIndex].expense_type, // Changed from reason
     };
     incomes[incomeIndex] = updatedIncome;
     await this._saveIncomesToStorage(incomes);
 
-    if (updatedIncome.reason) {
-      const reasons = await this.getUniqueReasons();
-      const lowerCaseReason = updatedIncome.reason.toLowerCase().trim();
-      if (lowerCaseReason && !reasons.map(r => r.toLowerCase()).includes(lowerCaseReason)) {
-        reasons.push(updatedIncome.reason.trim());
-        await this._saveReasonsToStorage(reasons);
+    if (updatedIncome.expense_type) { // Changed from reason
+      const expenseTypes = await this.getUniqueExpenseTypes(); // Changed from getUniqueReasons
+      const lowerCaseExpenseType = updatedIncome.expense_type.toLowerCase().trim(); // Changed from reason
+      if (lowerCaseExpenseType && !expenseTypes.map(r => r.toLowerCase()).includes(lowerCaseExpenseType)) {
+        expenseTypes.push(updatedIncome.expense_type.trim()); // Changed from reason
+        await this._saveExpenseTypesToStorage(expenseTypes); // Changed from _saveReasonsToStorage
       }
     }
     return updatedIncome;

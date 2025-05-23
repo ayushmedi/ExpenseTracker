@@ -16,7 +16,7 @@ interface IncomeFormDialogProps {
   onClose: () => void;
   onSubmit: (data: IncomeCreateDto) => Promise<void>;
   isLoading?: boolean;
-  uniqueReasons: string[];
+  uniqueExpenseTypes: string[]; // Changed from uniqueReasons
 }
 
 export function IncomeFormDialog({
@@ -24,7 +24,7 @@ export function IncomeFormDialog({
   onClose,
   onSubmit,
   isLoading,
-  uniqueReasons,
+  uniqueExpenseTypes, // Changed prop name
 }: IncomeFormDialogProps) {
   
   const handleSubmit = async (data: IncomeCreateDto) => {
@@ -40,7 +40,7 @@ export function IncomeFormDialog({
         <DialogHeader>
           <DialogTitle>Add New Income</DialogTitle>
           <DialogDescription>
-            Enter the amount and an optional source or reason for your income.
+            Enter the amount and an optional type or source for your income. {/* Changed text */}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
@@ -48,7 +48,7 @@ export function IncomeFormDialog({
             onSubmit={handleSubmit}
             onCancel={onClose}
             isLoading={isLoading}
-            uniqueReasons={uniqueReasons}
+            uniqueExpenseTypes={uniqueExpenseTypes} // Changed prop name
           />
         </div>
       </DialogContent>

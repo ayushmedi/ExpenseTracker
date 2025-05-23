@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -15,7 +16,7 @@ interface ExpenseFormDialogProps {
   onClose: () => void;
   onSubmit: (data: ExpenseCreateDto) => Promise<void>;
   isLoading?: boolean;
-  uniqueReasons: string[];
+  uniqueExpenseTypes: string[]; // Changed from uniqueReasons
 }
 
 export function ExpenseFormDialog({
@@ -23,12 +24,12 @@ export function ExpenseFormDialog({
   onClose,
   onSubmit,
   isLoading,
-  uniqueReasons,
+  uniqueExpenseTypes, // Changed prop name
 }: ExpenseFormDialogProps) {
   
   const handleSubmit = async (data: ExpenseCreateDto) => {
     await onSubmit(data);
-    if (!isLoading) { // Only close if submit was not blocked by loading state from outside
+    if (!isLoading) { 
         onClose();
     }
   };
@@ -39,7 +40,7 @@ export function ExpenseFormDialog({
         <DialogHeader>
           <DialogTitle>Add New Expense</DialogTitle>
           <DialogDescription>
-            Enter the amount and an optional reason for your expense.
+            Enter the amount and an optional expense type for your expense. {/* Changed "reason" to "expense type" */}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
@@ -47,7 +48,7 @@ export function ExpenseFormDialog({
             onSubmit={handleSubmit}
             onCancel={onClose}
             isLoading={isLoading}
-            uniqueReasons={uniqueReasons}
+            uniqueExpenseTypes={uniqueExpenseTypes} // Changed prop name
           />
         </div>
       </DialogContent>

@@ -19,8 +19,8 @@ export default function HomePage() {
   const [isExpenseFormOpen, setIsExpenseFormOpen] = React.useState(false);
   const [isIncomeFormOpen, setIsIncomeFormOpen] = React.useState(false);
   
-  const { expenses, uniqueReasons: uniqueExpenseReasons, isLoading: isLoadingExpenses, addExpense, updateExpense, error: expenseError } = useExpenses();
-  const { incomes, uniqueIncomeReasons, isLoading: isLoadingIncomes, addIncome, updateIncome, error: incomeError } = useIncomes();
+  const { expenses, uniqueExpenseTypes, isLoading: isLoadingExpenses, addExpense, updateExpense, error: expenseError } = useExpenses(); // Renamed uniqueReasons
+  const { incomes, uniqueIncomeExpenseTypes, isLoading: isLoadingIncomes, addIncome, updateIncome, error: incomeError } = useIncomes(); // Renamed uniqueIncomeReasons
 
   const [selectedYear, setSelectedYear] = React.useState<string | null>(null);
   const [selectedMonthBucket, setSelectedMonthBucket] = React.useState<string | null>(null);
@@ -63,7 +63,7 @@ export default function HomePage() {
       const lowerSearchTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (item) =>
-          item.reason?.toLowerCase().includes(lowerSearchTerm) ||
+          item.expense_type?.toLowerCase().includes(lowerSearchTerm) || // Changed from reason
           String(item.amount).includes(lowerSearchTerm)
       );
     }
@@ -141,7 +141,7 @@ export default function HomePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search by reason or amount..."
+                placeholder="Search by type or amount..." // Changed from reason
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 h-12 text-base"
@@ -173,13 +173,12 @@ export default function HomePage() {
             onUpdateExpense={updateExpense as (id: string, data: ExpenseUpdateDto) => Promise<void>}
             onUpdateIncome={updateIncome as (id: string, data: IncomeUpdateDto) => Promise<void>}
             isLoadingWhileUpdating={isLoadingExpenses || isLoadingIncomes} 
-            uniqueExpenseReasons={uniqueExpenseReasons}
-            uniqueIncomeReasons={uniqueIncomeReasons}
+            uniqueExpenseTypes={uniqueExpenseTypes} // Renamed from uniqueExpenseReasons
+            uniqueIncomeExpenseTypes={uniqueIncomeExpenseTypes} // Renamed from uniqueIncomeReasons
           />
         )}
       </main>
 
-      {/* Mobile FABs Container - Arranged side-by-side */}
       <div className="fixed bottom-6 right-6 md:hidden flex space-x-4 z-50">
         <Button
           onClick={() => setIsIncomeFormOpen(true)}
@@ -202,7 +201,7 @@ export default function HomePage() {
         onClose={() => setIsExpenseFormOpen(false)}
         onSubmit={handleAddExpense}
         isLoading={isLoadingExpenses}
-        uniqueReasons={uniqueExpenseReasons}
+        uniqueExpenseTypes={uniqueExpenseTypes} // Renamed from uniqueReasons
       />
 
       <IncomeFormDialog
@@ -210,7 +209,7 @@ export default function HomePage() {
         onClose={() => setIsIncomeFormOpen(false)}
         onSubmit={handleAddIncome}
         isLoading={isLoadingIncomes}
-        uniqueReasons={uniqueIncomeReasons}
+        uniqueExpenseTypes={uniqueIncomeExpenseTypes} // Renamed from uniqueReasons
       />
       
       <footer className="py-6 text-center text-sm text-muted-foreground border-t">

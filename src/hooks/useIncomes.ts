@@ -8,21 +8,21 @@ import { useToast } from "@/hooks/use-toast";
 
 export function useIncomes() {
   const [incomes, setIncomes] = useState<Income[]>([]);
-  const [uniqueIncomeReasons, setUniqueIncomeReasons] = useState<string[]>([]);
+  const [uniqueIncomeExpenseTypes, setUniqueIncomeExpenseTypes] = useState<string[]>([]); // Changed from uniqueIncomeReasons
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
   const repository = getIncomeRepository();
 
-  const fetchIncomesAndReasons = useCallback(async () => {
+  const fetchIncomesAndExpenseTypes = useCallback(async () => { // Changed from fetchIncomesAndReasons
     setIsLoading(true);
     try {
-      const [fetchedIncomes, fetchedReasons] = await Promise.all([
+      const [fetchedIncomes, fetchedExpenseTypes] = await Promise.all([ // Changed from fetchedReasons
         repository.getAllIncomes(),
-        repository.getUniqueReasons()
+        repository.getUniqueExpenseTypes() // Changed from getUniqueReasons
       ]);
       setIncomes(fetchedIncomes);
-      setUniqueIncomeReasons(fetchedReasons);
+      setUniqueIncomeExpenseTypes(fetchedExpenseTypes); // Changed from setUniqueIncomeReasons
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -37,14 +37,14 @@ export function useIncomes() {
   }, [repository, toast]);
 
   useEffect(() => {
-    fetchIncomesAndReasons();
-  }, [fetchIncomesAndReasons]);
+    fetchIncomesAndExpenseTypes(); // Changed from fetchIncomesAndReasons
+  }, [fetchIncomesAndExpenseTypes]);
 
   const addIncome = useCallback(async (data: IncomeCreateDto) => {
     setIsLoading(true);
     try {
       await repository.addIncome(data);
-      await fetchIncomesAndReasons(); // Refetch all data
+      await fetchIncomesAndExpenseTypes(); // Changed from fetchIncomesAndReasons
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -56,14 +56,14 @@ export function useIncomes() {
     } finally {
       setIsLoading(false);
     }
-  }, [repository, fetchIncomesAndReasons, toast]);
+  }, [repository, fetchIncomesAndExpenseTypes, toast]);
 
   const updateIncome = useCallback(async (id: string, data: IncomeUpdateDto) => {
     setIsLoading(true);
     try {
       const updated = await repository.updateIncome(id, data);
       if (updated) {
-        await fetchIncomesAndReasons(); // Refetch all data
+        await fetchIncomesAndExpenseTypes(); // Changed from fetchIncomesAndReasons
       } else {
         throw new Error("Income not found or update failed.");
       }
@@ -78,15 +78,15 @@ export function useIncomes() {
     } finally {
       setIsLoading(false);
     }
-  }, [repository, fetchIncomesAndReasons, toast]);
+  }, [repository, fetchIncomesAndExpenseTypes, toast]);
 
   return {
     incomes,
-    uniqueIncomeReasons,
+    uniqueIncomeExpenseTypes, // Changed from uniqueIncomeReasons
     isLoading,
     error,
     addIncome,
     updateIncome,
-    refreshIncomes: fetchIncomesAndReasons,
+    refreshIncomes: fetchIncomesAndExpenseTypes, // Changed from fetchIncomesAndReasons
   };
 }

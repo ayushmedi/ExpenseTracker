@@ -17,30 +17,30 @@ import { Pencil, Check, X } from "lucide-react";
 interface LedgerItemProps {
   transaction: Transaction;
   onUpdateTransaction: (id: string, data: ExpenseUpdateDto | IncomeUpdateDto) => Promise<void>;
-  uniqueReasonsForType: string[];
+  uniqueExpenseTypesForType: string[]; // Changed from uniqueReasonsForType
   isLoadingWhileUpdating?: boolean;
 }
 
 const editTransactionFormSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
-  reason: z.string().max(100, "Reason is too long.").optional(),
+  expense_type: z.string().max(100, "Type description is too long.").optional(), // Changed from reason
 });
 
 type EditTransactionFormValues = z.infer<typeof editTransactionFormSchema>;
 
-export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForType, isLoadingWhileUpdating }: LedgerItemProps) {
+export function LedgerItem({ transaction, onUpdateTransaction, uniqueExpenseTypesForType, isLoadingWhileUpdating }: LedgerItemProps) { // Changed prop name
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
 
-  const [reasonInput, setReasonInput] = React.useState(transaction.reason || "");
-  const [suggestedReasons, setSuggestedReasons] = React.useState<string[]>([]);
+  const [expenseTypeInput, setExpenseTypeInput] = React.useState(transaction.expense_type || ""); // Changed from reasonInput
+  const [suggestedExpenseTypes, setSuggestedExpenseTypes] = React.useState<string[]>([]); // Changed from suggestedReasons
   const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
 
   const form = useForm<EditTransactionFormValues>({
     resolver: zodResolver(editTransactionFormSchema),
     defaultValues: {
       amount: transaction.amount,
-      reason: transaction.reason || "",
+      expense_type: transaction.expense_type || "", // Changed from reason
     },
   });
 
@@ -48,11 +48,10 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
     if (isEditing) {
       form.reset({
         amount: transaction.amount,
-        reason: transaction.reason || "",
+        expense_type: transaction.expense_type || "", // Changed from reason
       });
-      setReasonInput(transaction.reason || "");
+      setExpenseTypeInput(transaction.expense_type || ""); // Changed from reasonInput
       setTimeout(() => {
-        // Ensure focus target exists and is an HTMLInputElement or HTMLTextAreaElement
         const amountField = form.control.fieldsRef.current.amount?.ref as HTMLElement | undefined;
         if (amountField && typeof amountField.focus === 'function') {
           amountField.focus();
@@ -62,29 +61,28 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
   }, [isEditing, transaction, form]);
 
   React.useEffect(() => {
-    if (reasonInput.length > 0 && isEditing) {
-      const filtered = uniqueReasonsForType
-        .filter((r) => r.toLowerCase().includes(reasonInput.toLowerCase()))
+    if (expenseTypeInput.length > 0 && isEditing) {
+      const filtered = uniqueExpenseTypesForType // Changed from uniqueReasonsForType
+        .filter((r) => r.toLowerCase().includes(expenseTypeInput.toLowerCase()))
         .slice(0, 5);
-      setSuggestedReasons(filtered);
+      setSuggestedExpenseTypes(filtered); // Changed from setSuggestedReasons
     } else {
-      setSuggestedReasons([]);
+      setSuggestedExpenseTypes([]); // Changed from setSuggestedReasons
     }
-  }, [reasonInput, uniqueReasonsForType, isEditing]);
+  }, [expenseTypeInput, uniqueExpenseTypesForType, isEditing]); // Changed prop name
 
   const handleEditSubmit = async (data: EditTransactionFormValues) => {
     setIsSaving(true);
     try {
       await onUpdateTransaction(transaction.id, {
         amount: data.amount,
-        reason: data.reason || undefined, // Ensure empty string becomes undefined
+        expense_type: data.expense_type || undefined, // Ensure empty string becomes undefined; Changed from reason
       });
       setIsEditing(false);
-      setReasonInput(data.reason || "");
+      setExpenseTypeInput(data.expense_type || ""); // Changed from reasonInput
       setIsSuggestionsOpen(false);
     } catch (error) {
       console.error("Failed to update transaction:", error);
-      // Potentially add user-facing error toast here if needed
     } finally {
       setIsSaving(false);
     }
@@ -94,23 +92,23 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
     setIsEditing(false);
     form.reset({
       amount: transaction.amount,
-      reason: transaction.reason || "",
+      expense_type: transaction.expense_type || "", // Changed from reason
     });
-    setReasonInput(transaction.reason || "");
+    setExpenseTypeInput(transaction.expense_type || ""); // Changed from reasonInput
     setIsSuggestionsOpen(false);
   };
 
-  const handleReasonSelect = (reason: string) => {
-    form.setValue("reason", reason, { shouldValidate: true });
-    setReasonInput(reason);
-    setIsSuggestionsOpen(false); // Explicitly close popover
+  const handleExpenseTypeSelect = (expenseType: string) => { // Changed from handleReasonSelect
+    form.setValue("expense_type", expenseType, { shouldValidate: true }); // Changed from reason
+    setExpenseTypeInput(expenseType); // Changed from setReasonInput
+    setIsSuggestionsOpen(false); 
   };
 
-  const handleReasonKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleExpenseTypeKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => { // Changed from handleReasonKeyDown
     if (event.key === "Enter") {
-      if (isSuggestionsOpen && suggestedReasons.length === 1) {
+      if (isSuggestionsOpen && suggestedExpenseTypes.length === 1) { // Changed from suggestedReasons
         event.preventDefault(); 
-        handleReasonSelect(suggestedReasons[0]);
+        handleExpenseTypeSelect(suggestedExpenseTypes[0]); // Changed from handleReasonSelect, suggestedReasons
       } else if (!event.shiftKey) { 
         event.preventDefault(); 
         await form.handleSubmit(handleEditSubmit)(); 
@@ -122,8 +120,9 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
     ? `+${formatCurrency(transaction.amount)}` 
     : `-${formatCurrency(transaction.amount)}`;
   const amountColorClass = transaction.type === 'income' ? 'text-green-600' : 'text-destructive';
-  const defaultReasonText = transaction.type === 'income' ? "Unspecified Income" : "Unspecified Expense";
-  const reasonPlaceholder = transaction.type === 'income' ? "Edit source/reason (optional)" : "Edit reason (optional)";
+  
+  const defaultExpenseTypeText = transaction.type === 'income' ? "Unspecified Income Type" : "Unspecified Expense Type"; // Changed text
+  const expenseTypePlaceholder = transaction.type === 'income' ? "Edit type/source (optional)" : "Edit expense type (optional)"; // Changed text
 
 
   if (isEditing) {
@@ -152,7 +151,7 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
             />
             <FormField
               control={form.control}
-              name="reason"
+              name="expense_type" // Changed from reason
               render={({ field }) => (
                 <FormItem className="flex-grow">
                   <Popover open={isSuggestionsOpen && isEditing} onOpenChange={setIsSuggestionsOpen}>
@@ -162,44 +161,44 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
                           {...field}
                           rows={1}
                           className="text-sm resize-none"
-                          placeholder={reasonPlaceholder}
-                          aria-label="Edit reason"
-                          value={reasonInput}
+                          placeholder={expenseTypePlaceholder} // Changed placeholder
+                          aria-label="Edit expense type" // Changed aria-label
+                          value={expenseTypeInput} // Changed from reasonInput
                           onChange={(e) => {
                             const newValue = e.target.value;
                             field.onChange(e);
-                            setReasonInput(newValue);
+                            setExpenseTypeInput(newValue); // Changed from setReasonInput
                             if (newValue.length > 0) {
-                              const filteredOnChange = uniqueReasonsForType
+                              const filteredOnChange = uniqueExpenseTypesForType // Changed from uniqueReasonsForType
                                 .filter((r) => r.toLowerCase().includes(newValue.toLowerCase()))
                                 .slice(0, 5);
-                              setSuggestedReasons(filteredOnChange); // Update suggestions immediately
+                              setSuggestedExpenseTypes(filteredOnChange); // Changed from setSuggestedReasons
                               if (filteredOnChange.length > 0) {
                                 setIsSuggestionsOpen(true); 
                               } else {
                                 setIsSuggestionsOpen(false);
                               }
                             } else {
-                              setSuggestedReasons([]); // Clear suggestions
+                              setSuggestedExpenseTypes([]); // Changed from setSuggestedReasons
                               setIsSuggestionsOpen(false);
                             }
                           }}
-                          onKeyDown={handleReasonKeyDown}
+                          onKeyDown={handleExpenseTypeKeyDown} // Changed from handleReasonKeyDown
                         />
                       </FormControl>
                     </PopoverTrigger>
-                    {suggestedReasons.length > 0 && (
+                    {suggestedExpenseTypes.length > 0 && ( // Changed from suggestedReasons
                       <PopoverContent 
                         className="w-[--radix-popover-trigger-width] p-0"
                         onOpenAutoFocus={(e) => e.preventDefault()}
                       >
                         <ul className="py-1">
-                          {suggestedReasons.map((suggestion) => (
+                          {suggestedExpenseTypes.map((suggestion) => ( // Changed from suggestedReasons
                             <li key={suggestion}>
                               <Button
                                 variant="ghost"
                                 className="w-full justify-start px-3 py-1.5 h-auto text-sm"
-                                onClick={() => handleReasonSelect(suggestion)}
+                                onClick={() => handleExpenseTypeSelect(suggestion)} // Changed from handleReasonSelect
                               >
                                 {suggestion}
                               </Button>
@@ -232,15 +231,15 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
 
   return (
     <div className="flex justify-between items-center py-3 px-1 border-b border-border/60 last:border-b-0 hover:bg-muted/30 transition-colors rounded-md group">
-      <div className="flex-grow min-w-0"> {/* Added min-w-0 for better flex handling with truncation */}
-        <p className="font-medium text-foreground truncate"> {/* Added truncate */}
-          {transaction.reason || defaultReasonText}
+      <div className="flex-grow min-w-0"> 
+        <p className="font-medium text-foreground truncate"> 
+          {transaction.expense_type || defaultExpenseTypeText} {/* Changed from reason */}
         </p>
         <p className="text-xs text-muted-foreground">
           {formatDate(transaction.timestamp, {  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
-      <div className="flex items-center space-x-1 sm:space-x-2 ml-2 shrink-0"> {/* Added shrink-0 and adjusted spacing */}
+      <div className="flex items-center space-x-1 sm:space-x-2 ml-2 shrink-0"> 
         <p className={`text-base sm:text-lg font-semibold tabular-nums ${amountColorClass}`}>
           {displayAmount}
         </p>
@@ -252,5 +251,3 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
     </div>
   );
 }
-
-    

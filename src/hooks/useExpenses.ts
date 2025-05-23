@@ -1,12 +1,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Expense, ExpenseCreateDto } from '@/lib/types';
+import type { Expense, ExpenseCreateDto, ExpenseUpdateDto } from '@/lib/types'; // Added ExpenseUpdateDto
 import { getExpenseRepository } from '@/lib/store';
 import { useToast } from "@/hooks/use-toast";
 
 export function useExpenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [uniqueReasons, setUniqueReasons] = useState<string[]>([]);
+  const [uniqueExpenseTypes, setUniqueExpenseTypes] = useState<string[]>([]); // Changed from uniqueReasons
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
@@ -15,12 +15,12 @@ export function useExpenses() {
   const fetchExpenses = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fetchedExpenses, fetchedReasons] = await Promise.all([
+      const [fetchedExpenses, fetchedExpenseTypes] = await Promise.all([ // Changed from fetchedReasons
         repository.getAllExpenses(),
-        repository.getUniqueReasons()
+        repository.getUniqueExpenseTypes() // Changed from getUniqueReasons
       ]);
       setExpenses(fetchedExpenses);
-      setUniqueReasons(fetchedReasons);
+      setUniqueExpenseTypes(fetchedExpenseTypes); // Changed from setUniqueReasons
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -42,7 +42,7 @@ export function useExpenses() {
     setIsLoading(true);
     try {
       await repository.addExpense(data);
-      await fetchExpenses(); // Refetch all data
+      await fetchExpenses(); 
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -56,13 +56,12 @@ export function useExpenses() {
     }
   }, [repository, fetchExpenses, toast]);
 
-  const updateExpense = useCallback(async (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => {
-    setIsLoading(true); // Use general loading state, or introduce a specific one if needed
+  const updateExpense = useCallback(async (id: string, data: ExpenseUpdateDto) => { // Changed type from Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>
+    setIsLoading(true); 
     try {
       const updated = await repository.updateExpense(id, data);
       if (updated) {
-        await fetchExpenses(); // Refetch all data
-        // Success toast removed as per user request
+        await fetchExpenses(); 
       } else {
         throw new Error("Expense not found or update failed.");
       }
@@ -81,11 +80,11 @@ export function useExpenses() {
 
   return {
     expenses,
-    uniqueReasons,
+    uniqueExpenseTypes, // Changed from uniqueReasons
     isLoading,
     error,
     addExpense,
     updateExpense,
-    refreshExpenses: fetchExpenses, // Expose a refresh function
+    refreshExpenses: fetchExpenses, 
   };
 }

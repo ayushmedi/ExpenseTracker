@@ -21,7 +21,7 @@ import type { ExpenseCreateDto } from "@/lib/types";
 
 const formSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
-  reason: z.string().max(100, "Reason is too long.").optional(),
+  expense_type: z.string().max(100, "Expense type is too long.").optional(), // Changed from reason
 });
 
 type ExpenseFormValues = z.infer<typeof formSchema>;
@@ -30,36 +30,36 @@ interface ExpenseFormProps {
   onSubmit: (data: ExpenseCreateDto) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
-  uniqueReasons: string[];
+  uniqueExpenseTypes: string[]; // Changed from uniqueReasons
 }
 
-export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: ExpenseFormProps) {
+export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueExpenseTypes }: ExpenseFormProps) { // Changed prop name
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: NaN,
-      reason: "",
+      expense_type: "", // Changed from reason
     },
   });
 
-  const [reasonInput, setReasonInput] = React.useState("");
-  const [suggestedReasons, setSuggestedReasons] = React.useState<string[]>([]);
+  const [expenseTypeInput, setExpenseTypeInput] = React.useState(""); // Changed from reasonInput
+  const [suggestedExpenseTypes, setSuggestedExpenseTypes] = React.useState<string[]>([]); // Changed from suggestedReasons
   const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
 
   React.useEffect(() => {
     form.setFocus('amount');
-  }, [form.setFocus]);
+  }, [form]);
 
   React.useEffect(() => {
-    if (reasonInput.length > 0) {
-      const filtered = uniqueReasons
-        .filter((r) => r.toLowerCase().includes(reasonInput.toLowerCase()))
-        .slice(0, 5); // Show top 5 suggestions
-      setSuggestedReasons(filtered);
+    if (expenseTypeInput.length > 0) {
+      const filtered = uniqueExpenseTypes // Changed from uniqueReasons
+        .filter((r) => r.toLowerCase().includes(expenseTypeInput.toLowerCase()))
+        .slice(0, 5); 
+      setSuggestedExpenseTypes(filtered); // Changed from setSuggestedReasons
     } else {
-      setSuggestedReasons([]);
+      setSuggestedExpenseTypes([]); // Changed from setSuggestedReasons
     }
-  }, [reasonInput, uniqueReasons]);
+  }, [expenseTypeInput, uniqueExpenseTypes]); // Changed prop name
 
   const handleFormSubmit = async (values: ExpenseFormValues) => {
     const dataToSubmit = {
@@ -67,22 +67,22 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
         amount: isNaN(values.amount) ? 0 : values.amount,
     };
     await onSubmit(dataToSubmit);
-    form.reset({ amount: NaN, reason: "" });
-    setReasonInput("");
+    form.reset({ amount: NaN, expense_type: "" }); // Changed from reason
+    setExpenseTypeInput(""); // Changed from setReasonInput
     setIsSuggestionsOpen(false);
   };
 
-  const handleReasonSelect = (reason: string) => {
-    form.setValue("reason", reason, { shouldValidate: true });
-    setReasonInput(reason);
+  const handleExpenseTypeSelect = (expenseType: string) => { // Changed from handleReasonSelect
+    form.setValue("expense_type", expenseType, { shouldValidate: true }); // Changed from reason
+    setExpenseTypeInput(expenseType); // Changed from setReasonInput
     setIsSuggestionsOpen(false);
   };
 
-  const handleReasonKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleExpenseTypeKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => { // Changed from handleReasonKeyDown
     if (event.key === "Enter") {
-      if (isSuggestionsOpen && suggestedReasons.length === 1) {
+      if (isSuggestionsOpen && suggestedExpenseTypes.length === 1) { // Changed from suggestedReasons
         event.preventDefault(); 
-        handleReasonSelect(suggestedReasons[0]); 
+        handleExpenseTypeSelect(suggestedExpenseTypes[0]); // Changed from handleReasonSelect, suggestedReasons
       } else if (!event.shiftKey) { 
         event.preventDefault(); 
         await form.handleSubmit(handleFormSubmit)(); 
@@ -116,26 +116,27 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
 
         <FormField
           control={form.control}
-          name="reason"
+          name="expense_type" // Changed from reason
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Reason (Optional)</FormLabel>
+              <FormLabel>Expense Type (Optional)</FormLabel> {/* Changed label */}
               <Popover open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Textarea
                       placeholder="e.g., Groceries, Coffee"
                       {...field}
-                      value={reasonInput}
+                      value={expenseTypeInput} // Changed from reasonInput
                       onChange={(e) => {
                         const newValue = e.target.value;
                         field.onChange(e); 
-                        setReasonInput(newValue); 
+                        setExpenseTypeInput(newValue); // Changed from setReasonInput
 
                         if (newValue.length > 0) {
-                          const filteredOnChange = uniqueReasons
+                          const filteredOnChange = uniqueExpenseTypes // Changed from uniqueReasons
                             .filter((r) => r.toLowerCase().includes(newValue.toLowerCase()))
                             .slice(0, 5);
+                          setSuggestedExpenseTypes(filteredOnChange); // Changed from setSuggestedReasons
                           if (filteredOnChange.length > 0) {
                             setIsSuggestionsOpen(true); 
                           } else {
@@ -145,23 +146,23 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                           setIsSuggestionsOpen(false);
                         }
                       }}
-                      onKeyDown={handleReasonKeyDown}
+                      onKeyDown={handleExpenseTypeKeyDown} // Changed from handleReasonKeyDown
                       rows={2}
                     />
                   </FormControl>
                 </PopoverTrigger>
-                {suggestedReasons.length > 0 && (
+                {suggestedExpenseTypes.length > 0 && ( // Changed from suggestedReasons
                   <PopoverContent
                     className="w-[--radix-popover-trigger-width] p-0"
                     onOpenAutoFocus={(e) => e.preventDefault()} 
                   >
                     <ul className="py-1">
-                      {suggestedReasons.map((suggestion) => (
+                      {suggestedExpenseTypes.map((suggestion) => ( // Changed from suggestedReasons
                         <li key={suggestion}>
                           <Button
                             variant="ghost"
                             className="w-full justify-start px-3 py-1.5 h-auto text-sm"
-                            onClick={() => handleReasonSelect(suggestion)}
+                            onClick={() => handleExpenseTypeSelect(suggestion)} // Changed from handleReasonSelect
                           >
                             {suggestion}
                           </Button>

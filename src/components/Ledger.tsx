@@ -13,8 +13,8 @@ interface LedgerProps {
   onUpdateExpense: (id: string, data: ExpenseUpdateDto) => Promise<void>;
   onUpdateIncome: (id: string, data: IncomeUpdateDto) => Promise<void>;
   isLoadingWhileUpdating?: boolean;
-  uniqueExpenseReasons: string[];
-  uniqueIncomeReasons: string[];
+  uniqueExpenseTypes: string[]; // Renamed from uniqueExpenseReasons
+  uniqueIncomeExpenseTypes: string[]; // Renamed from uniqueIncomeReasons
 }
 
 interface GroupedTransactions {
@@ -27,8 +27,8 @@ export function Ledger({
   onUpdateExpense, 
   onUpdateIncome,
   isLoadingWhileUpdating, 
-  uniqueExpenseReasons,
-  uniqueIncomeReasons 
+  uniqueExpenseTypes, // Renamed prop
+  uniqueIncomeExpenseTypes // Renamed prop
 }: LedgerProps) {
 
   const groupedTransactions = React.useMemo(() => {
@@ -43,7 +43,7 @@ export function Ledger({
   }, [transactions]);
 
   const sortedMonthBuckets = React.useMemo(() => {
-    return Object.keys(groupedTransactions).sort((a, b) => b.localeCompare(a)); // Newest month first
+    return Object.keys(groupedTransactions).sort((a, b) => b.localeCompare(a)); 
   }, [groupedTransactions]);
 
   const defaultOpenValue = sortedMonthBuckets.length > 0 ? [sortedMonthBuckets[0]] : [];
@@ -53,17 +53,12 @@ export function Ledger({
   }
   
   if (transactions.length === 0 && !isLoading) {
-    // This message is now primarily handled by page.tsx based on transactionsForDisplay
-    // but kept as a fallback if Ledger is somehow rendered directly with no transactions.
     return <p className="text-center text-muted-foreground py-10">No transactions available for the current selection.</p>;
   }
   
   return (
     <div className="space-y-6">
       {sortedMonthBuckets.length > 0 && (
-        // Adjusted height calculations:
-        // Mobile (filters stacked): Approx 100vh - 332px
-        // Desktop MD (filters one line): Approx 100vh - 220px
         <ScrollArea className="h-[calc(100vh-332px)] md:h-[calc(100vh-220px)]">
           <Accordion type="multiple" defaultValue={defaultOpenValue} className="w-full pr-3">
             {sortedMonthBuckets.map((monthBucket) => (
@@ -74,8 +69,8 @@ export function Ledger({
                 onUpdateExpense={onUpdateExpense}
                 onUpdateIncome={onUpdateIncome}
                 isLoadingWhileUpdating={isLoadingWhileUpdating}
-                uniqueExpenseReasons={uniqueExpenseReasons}
-                uniqueIncomeReasons={uniqueIncomeReasons}
+                uniqueExpenseTypes={uniqueExpenseTypes} // Pass renamed prop
+                uniqueIncomeExpenseTypes={uniqueIncomeExpenseTypes} // Pass renamed prop
               />
             ))}
           </Accordion>
@@ -84,5 +79,3 @@ export function Ledger({
     </div>
   );
 }
-
-    
