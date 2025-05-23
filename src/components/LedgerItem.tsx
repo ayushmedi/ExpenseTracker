@@ -52,7 +52,11 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
       });
       setReasonInput(transaction.reason || "");
       setTimeout(() => {
-        form.setFocus('amount');
+        // Ensure focus target exists and is an HTMLInputElement or HTMLTextAreaElement
+        const amountField = form.control.fieldsRef.current.amount?.ref as HTMLElement | undefined;
+        if (amountField && typeof amountField.focus === 'function') {
+          amountField.focus();
+        }
       }, 0);
     }
   }, [isEditing, transaction, form]);
@@ -73,13 +77,14 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
     try {
       await onUpdateTransaction(transaction.id, {
         amount: data.amount,
-        reason: data.reason || undefined,
+        reason: data.reason || undefined, // Ensure empty string becomes undefined
       });
       setIsEditing(false);
       setReasonInput(data.reason || "");
       setIsSuggestionsOpen(false);
     } catch (error) {
       console.error("Failed to update transaction:", error);
+      // Potentially add user-facing error toast here if needed
     } finally {
       setIsSaving(false);
     }
@@ -98,7 +103,7 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
   const handleReasonSelect = (reason: string) => {
     form.setValue("reason", reason, { shouldValidate: true });
     setReasonInput(reason);
-    setIsSuggestionsOpen(false);
+    setIsSuggestionsOpen(false); // Explicitly close popover
   };
 
   const handleReasonKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -168,12 +173,14 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
                               const filteredOnChange = uniqueReasonsForType
                                 .filter((r) => r.toLowerCase().includes(newValue.toLowerCase()))
                                 .slice(0, 5);
+                              setSuggestedReasons(filteredOnChange); // Update suggestions immediately
                               if (filteredOnChange.length > 0) {
                                 setIsSuggestionsOpen(true); 
                               } else {
                                 setIsSuggestionsOpen(false);
                               }
                             } else {
+                              setSuggestedReasons([]); // Clear suggestions
                               setIsSuggestionsOpen(false);
                             }
                           }}
@@ -211,13 +218,11 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
              </p>
           </div>
           <div className="flex justify-end space-x-2 p-2 border-t bg-muted/30">
-            <Button type="button" variant="ghost" size="icon" onClick={handleCancelEdit} disabled={isSaving || isLoadingWhileUpdating} className="h-8 w-8 text-muted-foreground hover:text-destructive">
-              <X className="h-4 w-4" />
-              <span className="sr-only">Cancel edit</span>
+            <Button type="button" variant="outline" size="sm" onClick={handleCancelEdit} disabled={isSaving || isLoadingWhileUpdating}>
+              <X className="h-4 w-4 mr-1 sm:mr-2" /> Cancel
             </Button>
-            <Button type="submit" variant="ghost" size="icon" disabled={isSaving || isLoadingWhileUpdating} className="h-8 w-8 text-muted-foreground hover:text-primary">
-              <Check className="h-4 w-4" />
-              <span className="sr-only">Save changes</span>
+            <Button type="submit" variant="default" size="sm" disabled={isSaving || isLoadingWhileUpdating}>
+              <Check className="h-4 w-4 mr-1 sm:mr-2" /> Save
             </Button>
           </div>
         </form>
@@ -227,16 +232,16 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
 
   return (
     <div className="flex justify-between items-center py-3 px-1 border-b border-border/60 last:border-b-0 hover:bg-muted/30 transition-colors rounded-md group">
-      <div className="flex-grow">
-        <p className="font-medium text-foreground">
+      <div className="flex-grow min-w-0"> {/* Added min-w-0 for better flex handling with truncation */}
+        <p className="font-medium text-foreground truncate"> {/* Added truncate */}
           {transaction.reason || defaultReasonText}
         </p>
         <p className="text-xs text-muted-foreground">
           {formatDate(transaction.timestamp, {  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
-      <div className="flex items-center space-x-2">
-        <p className={`text-lg font-semibold tabular-nums ${amountColorClass}`}>
+      <div className="flex items-center space-x-1 sm:space-x-2 ml-2 shrink-0"> {/* Added shrink-0 and adjusted spacing */}
+        <p className={`text-base sm:text-lg font-semibold tabular-nums ${amountColorClass}`}>
           {displayAmount}
         </p>
         <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} disabled={isLoadingWhileUpdating} className="h-8 w-8 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
@@ -247,3 +252,5 @@ export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForT
     </div>
   );
 }
+
+    

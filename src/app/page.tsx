@@ -45,7 +45,7 @@ export default function HomePage() {
     const yearTransactions = allTransactions.filter(t => new Date(t.timestamp).getFullYear().toString() === selectedYear);
     const monthBuckets = new Set(yearTransactions.map(t => t.month_bucket));
     return Array.from(monthBuckets)
-      .sort((a, b) => b.localeCompare(a))
+      .sort((a, b) => b.localeCompare(a)) // Newest month first in dropdown (e.g. 2023-12 before 2023-11)
       .map(mb => ({ value: mb, label: getFormattedMonth(mb) }));
   }, [allTransactions, selectedYear]);
 
@@ -106,12 +106,12 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="flex-1 container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         {expenseError && <p className="text-destructive text-center mb-4">Error loading expenses: {expenseError.message}</p>}
         {incomeError && <p className="text-destructive text-center mb-4">Error loading income: {incomeError.message}</p>}
         
-        <div className="mb-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Select onValueChange={handleYearChange} value={selectedYear || "all"}>
               <SelectTrigger className="h-12 text-base" aria-label="Select year">
                 <CalendarDays className="mr-2 h-5 w-5 text-muted-foreground" />
@@ -138,7 +138,7 @@ export default function HomePage() {
               </SelectContent>
             </Select>
             
-            <div className="relative md:col-span-1">
+            <div className="relative sm:col-span-2 lg:col-span-1"> {/* Allow search to span if filters are in 2 cols */}
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 type="search"
@@ -204,3 +204,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
