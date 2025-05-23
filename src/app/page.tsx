@@ -179,7 +179,7 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Mobile FABs Container */}
+      {/* Mobile FABs Container - Arranged side-by-side */}
       <div className="fixed bottom-6 right-6 md:hidden flex space-x-4 z-50">
         <Button
           onClick={() => setIsIncomeFormOpen(true)}
@@ -214,7 +214,7 @@ export default function HomePage() {
       />
       
       <footer className="py-6 text-center text-sm text-muted-foreground border-t">
-         © {new Date().getFullYear()} CashFlu. Stay on top of your finances, even when you're not feeling your best.
+         © {new Date().getFullYear()} CashFlow Tracker. Track your outgoing cash effortlessly.
       </footer>
     </div>
   );
