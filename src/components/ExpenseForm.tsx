@@ -37,7 +37,7 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: NaN, // Initialize as NaN to keep it controlled and visually empty
+      amount: NaN,
       reason: "",
     },
   });
@@ -56,37 +56,46 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
         .filter((r) => r.toLowerCase().includes(reasonInput.toLowerCase()))
         .slice(0, 5); // Show top 5 suggestions
       setSuggestedReasons(filtered);
-      setIsSuggestionsOpen(filtered.length > 0);
+      // Note: isSuggestionsOpen is now primarily controlled by onChange and handleReasonSelect
     } else {
       setSuggestedReasons([]);
-      setIsSuggestionsOpen(false);
+      // Also ensure popover closes if input becomes empty
+      setIsSuggestionsOpen(false); 
     }
   }, [reasonInput, uniqueReasons]);
 
   const handleFormSubmit = async (values: ExpenseFormValues) => {
-    // Filter out NaN amount before submitting if it was never touched
     const dataToSubmit = {
         ...values,
-        amount: isNaN(values.amount) ? 0 : values.amount, // Or handle as error if preferred
+        amount: isNaN(values.amount) ? 0 : values.amount,
     };
     await onSubmit(dataToSubmit);
-    form.reset(); // This will reset to NaN and ""
+    form.reset({ amount: NaN, reason: "" });
     setReasonInput("");
+    setIsSuggestionsOpen(false); // Ensure popover is closed after submit
   };
 
   const handleReasonSelect = (reason: string) => {
-    form.setValue("reason", reason);
+    form.setValue("reason", reason, { shouldValidate: true });
     setReasonInput(reason);
-    setIsSuggestionsOpen(false);
+    setIsSuggestionsOpen(false); // Explicitly close popover on selection
   };
 
-  const handleReasonKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && suggestedReasons.length === 1) {
-      event.preventDefault(); // Prevent form submission or newline
-      handleReasonSelect(suggestedReasons[0]);
+  const handleReasonKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter") {
+      if (isSuggestionsOpen && suggestedReasons.length === 1) {
+        event.preventDefault(); // Prevent default Enter behavior (newline/submit)
+        handleReasonSelect(suggestedReasons[0]); // Select the suggestion
+      } else if (!event.shiftKey) { 
+        // If not Shift+Enter (which allows newline)
+        // This means: popover is closed, or it's open with 0 or >1 suggestions.
+        // In these cases, Enter (without Shift) should submit the form.
+        event.preventDefault(); // Prevent newline in textarea
+        await form.handleSubmit(handleFormSubmit)(); // Submit the form
+      }
+      // If Shift+Enter, default behavior (newline) is allowed because no preventDefault is called.
     }
   };
-
 
   return (
     <Form {...form}>
@@ -102,7 +111,7 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  {...field} // field.ref is now correctly passed from RHF
+                  {...field}
                   aria-required="true"
                 />
               </FormControl>
@@ -122,13 +131,28 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                   <FormControl>
                     <Textarea
                       placeholder="e.g., Groceries, Coffee"
-                      {...field} // RHF field props
-                      value={reasonInput} // Override value for local control
-                      onChange={(e) => { // Override onChange for local control + RHF
-                        field.onChange(e);
-                        setReasonInput(e.target.value);
+                      {...field}
+                      value={reasonInput}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        field.onChange(e); // Update RHF state
+                        setReasonInput(newValue); // Update local state
+
+                        if (newValue.length > 0) {
+                          const filteredOnChange = uniqueReasons
+                            .filter((r) => r.toLowerCase().includes(newValue.toLowerCase()))
+                            .slice(0, 5);
+                          // setSuggestedReasons(filteredOnChange); // Done by useEffect
+                          if (filteredOnChange.length > 0) {
+                            setIsSuggestionsOpen(true); 
+                          } else {
+                            setIsSuggestionsOpen(false);
+                          }
+                        } else {
+                          setIsSuggestionsOpen(false);
+                        }
                       }}
-                      onKeyDown={handleReasonKeyDown} // Add keydown handler
+                      onKeyDown={handleReasonKeyDown}
                       rows={2}
                     />
                   </FormControl>
@@ -136,7 +160,7 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                 {suggestedReasons.length > 0 && (
                   <PopoverContent
                     className="w-[--radix-popover-trigger-width] p-0"
-                    onOpenAutoFocus={(e) => e.preventDefault()} // Prevent focus stealing
+                    onOpenAutoFocus={(e) => e.preventDefault()} 
                   >
                     <ul className="py-1">
                       {suggestedReasons.map((suggestion) => (
