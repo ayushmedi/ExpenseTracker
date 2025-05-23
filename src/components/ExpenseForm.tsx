@@ -118,7 +118,7 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                       {...field} // RHF field props
                       value={reasonInput} // Override value for local control
                       onChange={(e) => { // Override onChange for local control + RHF
-                        field.onChange(e); 
+                        field.onChange(e);
                         setReasonInput(e.target.value);
                       }}
                       rows={2}
@@ -126,7 +126,10 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                   </FormControl>
                 </PopoverTrigger>
                 {suggestedReasons.length > 0 && (
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <PopoverContent
+                    className="w-[--radix-popover-trigger-width] p-0"
+                    onOpenAutoFocus={(e) => e.preventDefault()} // Prevent focus stealing
+                  >
                     <ul className="py-1">
                       {suggestedReasons.map((suggestion) => (
                         <li key={suggestion}>
