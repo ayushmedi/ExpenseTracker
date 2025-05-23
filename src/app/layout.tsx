@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import { Geist, Geist_Mono } from 'next/font/google'; // Corrected import to Geist
 import './globals.css';
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({ // Changed to new font variable name
 });
 
 export const metadata: Metadata = {
-  title: 'CashFlow Tracker',
-  description: 'Track your outgoing cash effortlessly.',
+  title: 'CashFlu',
+  description: 'Track your outgoing cash, even when you are not feeling your best.',
 };
 
 export default function RootLayout({

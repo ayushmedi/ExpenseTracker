@@ -214,7 +214,7 @@ export default function HomePage() {
       />
       
       <footer className="py-6 text-center text-sm text-muted-foreground border-t">
-         © {new Date().getFullYear()} CashFlow Tracker. Stay on top of your finances.
+         © {new Date().getFullYear()} CashFlu. Stay on top of your finances, even when you're not feeling your best.
       </footer>
     </div>
   );
