@@ -43,7 +43,6 @@ export function useExpenses() {
     try {
       await repository.addExpense(data);
       await fetchExpenses(); // Refetch all data
-      // Removed success toast
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -57,12 +56,40 @@ export function useExpenses() {
     }
   }, [repository, fetchExpenses, toast]);
 
+  const updateExpense = useCallback(async (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => {
+    setIsLoading(true); // Use general loading state, or introduce a specific one if needed
+    try {
+      const updated = await repository.updateExpense(id, data);
+      if (updated) {
+        await fetchExpenses(); // Refetch all data
+        toast({
+          title: "Success",
+          description: "Expense updated successfully.",
+          variant: "default", // Use default for success, or a custom 'success' variant if defined
+        });
+      } else {
+        throw new Error("Expense not found or update failed.");
+      }
+      setError(null);
+    } catch (e) {
+      setError(e as Error);
+      toast({
+        title: "Error",
+        description: (e as Error).message || "Could not update expense.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [repository, fetchExpenses, toast]);
+
   return {
     expenses,
     uniqueReasons,
     isLoading,
     error,
     addExpense,
+    updateExpense,
     refreshExpenses: fetchExpenses, // Expose a refresh function
   };
 }

@@ -1,3 +1,4 @@
+
 import type { Expense, ExpenseCreateDto } from './types';
 import { getMonthBucket } from './utils';
 
@@ -8,9 +9,9 @@ export interface ExpenseRepository {
   addExpense(data: ExpenseCreateDto): Promise<Expense>;
   getAllExpenses(): Promise<Expense[]>;
   getUniqueReasons(): Promise<string[]>;
+  updateExpense(id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>): Promise<Expense | null>;
   // Future methods:
   // getExpenseById(id: string): Promise<Expense | null>;
-  // updateExpense(id: string, data: Partial<ExpenseCreateDto>): Promise<Expense | null>;
   // deleteExpense(id: string): Promise<boolean>;
 }
 
@@ -68,6 +69,35 @@ class LocalStorageExpenseRepository implements ExpenseRepository {
 
   async getUniqueReasons(): Promise<string[]> {
     return this._getReasonsFromStorage();
+  }
+
+  async updateExpense(id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>): Promise<Expense | null> {
+    let expenses = await this._getExpensesFromStorage();
+    const expenseIndex = expenses.findIndex(exp => exp.id === id);
+
+    if (expenseIndex === -1) {
+      return null;
+    }
+
+    const updatedExpense = {
+      ...expenses[expenseIndex],
+      ...data,
+      // Ensure amount is a number if provided
+      amount: data.amount !== undefined ? Number(data.amount) : expenses[expenseIndex].amount,
+      reason: data.reason !== undefined ? (data.reason || undefined) : expenses[expenseIndex].reason,
+    };
+    expenses[expenseIndex] = updatedExpense;
+    await this._saveExpensesToStorage(expenses);
+
+    if (updatedExpense.reason) {
+      const reasons = await this.getUniqueReasons();
+      const lowerCaseReason = updatedExpense.reason.toLowerCase().trim();
+      if (lowerCaseReason && !reasons.map(r => r.toLowerCase()).includes(lowerCaseReason)) {
+        reasons.push(updatedExpense.reason.trim());
+        await this._saveReasonsToStorage(reasons);
+      }
+    }
+    return updatedExpense;
   }
 }
 

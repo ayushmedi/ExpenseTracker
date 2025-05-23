@@ -1,8 +1,8 @@
-import type { Expense } from "@/lib/types";
+
+import type { Expense, ExpenseCreateDto } from "@/lib/types";
 import { LedgerItem } from "./LedgerItem";
 import { getFormattedMonth, formatCurrency } from "@/lib/utils";
 import {
-  Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
@@ -11,9 +11,11 @@ import {
 interface LedgerMonthGroupProps {
   monthBucket: string;
   expenses: Expense[];
+  onUpdateExpense: (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => Promise<void>;
+  isLoadingWhileUpdating?: boolean;
 }
 
-export function LedgerMonthGroup({ monthBucket, expenses }: LedgerMonthGroupProps) {
+export function LedgerMonthGroup({ monthBucket, expenses, onUpdateExpense, isLoadingWhileUpdating }: LedgerMonthGroupProps) {
   if (expenses.length === 0) {
     return null;
   }
@@ -31,9 +33,14 @@ export function LedgerMonthGroup({ monthBucket, expenses }: LedgerMonthGroupProp
         </div>
       </AccordionTrigger>
       <AccordionContent className="px-6 pb-4">
-        <div className="space-y-2">
+        <div className="space-y-1"> {/* Reduced space for denser look */}
           {expenses.map((expense) => (
-            <LedgerItem key={expense.id} expense={expense} />
+            <LedgerItem 
+              key={expense.id} 
+              expense={expense} 
+              onUpdateExpense={onUpdateExpense}
+              isLoadingWhileUpdating={isLoadingWhileUpdating}
+            />
           ))}
         </div>
       </AccordionContent>

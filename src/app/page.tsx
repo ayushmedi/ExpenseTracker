@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -13,7 +14,7 @@ import { PlusCircle } from "lucide-react";
 export default function HomePage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
-  const { expenses, uniqueReasons, isLoading, addExpense, error } = useExpenses();
+  const { expenses, uniqueReasons, isLoading, addExpense, updateExpense, error } = useExpenses();
 
   const handleAddExpense = async (data: ExpenseCreateDto) => {
     await addExpense(data);
@@ -37,7 +38,9 @@ export default function HomePage() {
           expenses={expenses}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          isLoading={isLoading && expenses.length === 0}
+          isLoading={isLoading && expenses.length === 0} // Pass overall loading for initial load
+          onUpdateExpense={updateExpense}
+          isLoadingWhileUpdating={isLoading} // Pass general loading state for update operations
         />
       </main>
 

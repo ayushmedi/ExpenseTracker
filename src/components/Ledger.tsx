@@ -1,7 +1,8 @@
+
 "use client";
 
 import * as React from "react";
-import type { Expense } from "@/lib/types";
+import type { Expense, ExpenseCreateDto } from "@/lib/types";
 import { LedgerMonthGroup } from "./LedgerMonthGroup";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,13 +14,15 @@ interface LedgerProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
   isLoading: boolean;
+  onUpdateExpense: (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => Promise<void>;
+  isLoadingWhileUpdating?: boolean;
 }
 
 interface GroupedExpenses {
   [monthBucket: string]: Expense[];
 }
 
-export function Ledger({ expenses, searchTerm, onSearchChange, isLoading }: LedgerProps) {
+export function Ledger({ expenses, searchTerm, onSearchChange, isLoading, onUpdateExpense, isLoadingWhileUpdating }: LedgerProps) {
   const filteredExpenses = React.useMemo(() => {
     if (!searchTerm) return expenses;
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -83,6 +86,8 @@ export function Ledger({ expenses, searchTerm, onSearchChange, isLoading }: Ledg
                 key={monthBucket}
                 monthBucket={monthBucket}
                 expenses={groupedExpenses[monthBucket]}
+                onUpdateExpense={onUpdateExpense}
+                isLoadingWhileUpdating={isLoadingWhileUpdating}
               />
             ))}
           </Accordion>
