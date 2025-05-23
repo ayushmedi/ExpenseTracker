@@ -16,13 +16,14 @@ interface LedgerProps {
   isLoading: boolean;
   onUpdateExpense: (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => Promise<void>;
   isLoadingWhileUpdating?: boolean;
+  uniqueReasons: string[];
 }
 
 interface GroupedExpenses {
   [monthBucket: string]: Expense[];
 }
 
-export function Ledger({ expenses, searchTerm, onSearchChange, isLoading, onUpdateExpense, isLoadingWhileUpdating }: LedgerProps) {
+export function Ledger({ expenses, searchTerm, onSearchChange, isLoading, onUpdateExpense, isLoadingWhileUpdating, uniqueReasons }: LedgerProps) {
   const filteredExpenses = React.useMemo(() => {
     if (!searchTerm) return expenses;
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -88,6 +89,7 @@ export function Ledger({ expenses, searchTerm, onSearchChange, isLoading, onUpda
                 expenses={groupedExpenses[monthBucket]}
                 onUpdateExpense={onUpdateExpense}
                 isLoadingWhileUpdating={isLoadingWhileUpdating}
+                uniqueReasons={uniqueReasons}
               />
             ))}
           </Accordion>

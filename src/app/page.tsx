@@ -41,6 +41,7 @@ export default function HomePage() {
           isLoading={isLoading && expenses.length === 0} // Pass overall loading for initial load
           onUpdateExpense={updateExpense}
           isLoadingWhileUpdating={isLoading} // Pass general loading state for update operations
+          uniqueReasons={uniqueReasons}
         />
       </main>
 

@@ -62,11 +62,7 @@ export function useExpenses() {
       const updated = await repository.updateExpense(id, data);
       if (updated) {
         await fetchExpenses(); // Refetch all data
-        toast({
-          title: "Success",
-          description: "Expense updated successfully.",
-          variant: "default", // Use default for success, or a custom 'success' variant if defined
-        });
+        // Success toast removed as per user request
       } else {
         throw new Error("Expense not found or update failed.");
       }

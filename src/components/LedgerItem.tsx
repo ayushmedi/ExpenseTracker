@@ -11,12 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Pencil, Check, X } from "lucide-react";
 
 interface LedgerItemProps {
   expense: Expense;
   onUpdateExpense: (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => Promise<void>;
-  isLoadingWhileUpdating?: boolean; // To disable buttons during parent's loading state
+  isLoadingWhileUpdating?: boolean;
+  uniqueReasons: string[];
 }
 
 const editExpenseFormSchema = z.object({
@@ -26,9 +28,13 @@ const editExpenseFormSchema = z.object({
 
 type EditExpenseFormValues = z.infer<typeof editExpenseFormSchema>;
 
-export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating }: LedgerItemProps) {
+export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating, uniqueReasons }: LedgerItemProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
+
+  const [reasonInput, setReasonInput] = React.useState(expense.reason || "");
+  const [suggestedReasons, setSuggestedReasons] = React.useState<string[]>([]);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
 
   const form = useForm<EditExpenseFormValues>({
     resolver: zodResolver(editExpenseFormSchema),
@@ -44,24 +50,35 @@ export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating }:
         amount: expense.amount,
         reason: expense.reason || "",
       });
-      // Automatically focus the amount field when editing starts
-      // Wrapped in setTimeout to ensure the field is rendered
+      setReasonInput(expense.reason || ""); // Reset reasonInput when editing starts/resets
       setTimeout(() => {
         form.setFocus('amount');
       }, 0);
     }
   }, [isEditing, expense, form]);
 
+  React.useEffect(() => {
+    if (reasonInput.length > 0 && isEditing) { // Only show suggestions in edit mode
+      const filtered = uniqueReasons
+        .filter((r) => r.toLowerCase().includes(reasonInput.toLowerCase()))
+        .slice(0, 5);
+      setSuggestedReasons(filtered);
+    } else {
+      setSuggestedReasons([]);
+    }
+  }, [reasonInput, uniqueReasons, isEditing]);
+
   const handleEditSubmit = async (data: EditExpenseFormValues) => {
     setIsSaving(true);
     try {
       await onUpdateExpense(expense.id, {
         amount: data.amount,
-        reason: data.reason || undefined, // Ensure empty string becomes undefined for consistency
+        reason: data.reason || undefined,
       });
       setIsEditing(false);
+      setReasonInput(data.reason || ""); // Update reasonInput after successful save
+      setIsSuggestionsOpen(false); // Close suggestions popover
     } catch (error) {
-      // Error is handled by the parent hook (useExpenses) via toast
       console.error("Failed to update expense:", error);
     } finally {
       setIsSaving(false);
@@ -70,10 +87,30 @@ export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating }:
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    form.reset({ // Reset form to original values
+    form.reset({
       amount: expense.amount,
       reason: expense.reason || "",
     });
+    setReasonInput(expense.reason || "");
+    setIsSuggestionsOpen(false);
+  };
+
+  const handleReasonSelect = (reason: string) => {
+    form.setValue("reason", reason, { shouldValidate: true });
+    setReasonInput(reason);
+    setIsSuggestionsOpen(false);
+  };
+
+  const handleReasonKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter") {
+      if (isSuggestionsOpen && suggestedReasons.length === 1) {
+        event.preventDefault(); 
+        handleReasonSelect(suggestedReasons[0]);
+      } else if (!event.shiftKey) { 
+        event.preventDefault(); 
+        await form.handleSubmit(handleEditSubmit)(); 
+      }
+    }
   };
 
   if (isEditing) {
@@ -105,15 +142,58 @@ export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating }:
               name="reason"
               render={({ field }) => (
                 <FormItem className="flex-grow">
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      rows={1}
-                      className="text-sm resize-none"
-                      placeholder="Edit reason (optional)"
-                      aria-label="Edit reason"
-                    />
-                  </FormControl>
+                  <Popover open={isSuggestionsOpen && isEditing} onOpenChange={setIsSuggestionsOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          rows={1}
+                          className="text-sm resize-none"
+                          placeholder="Edit reason (optional)"
+                          aria-label="Edit reason"
+                          value={reasonInput}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            field.onChange(e);
+                            setReasonInput(newValue);
+                            if (newValue.length > 0) {
+                              const filteredOnChange = uniqueReasons
+                                .filter((r) => r.toLowerCase().includes(newValue.toLowerCase()))
+                                .slice(0, 5);
+                              if (filteredOnChange.length > 0) {
+                                setIsSuggestionsOpen(true); 
+                              } else {
+                                setIsSuggestionsOpen(false);
+                              }
+                            } else {
+                              setIsSuggestionsOpen(false);
+                            }
+                          }}
+                          onKeyDown={handleReasonKeyDown}
+                        />
+                      </FormControl>
+                    </PopoverTrigger>
+                    {suggestedReasons.length > 0 && (
+                      <PopoverContent 
+                        className="w-[--radix-popover-trigger-width] p-0"
+                        onOpenAutoFocus={(e) => e.preventDefault()}
+                      >
+                        <ul className="py-1">
+                          {suggestedReasons.map((suggestion) => (
+                            <li key={suggestion}>
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-start px-3 py-1.5 h-auto text-sm"
+                                onClick={() => handleReasonSelect(suggestion)}
+                              >
+                                {suggestion}
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      </PopoverContent>
+                    )}
+                  </Popover>
                   <FormMessage className="text-xs" />
                 </FormItem>
               )}

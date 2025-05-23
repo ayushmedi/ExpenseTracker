@@ -13,9 +13,10 @@ interface LedgerMonthGroupProps {
   expenses: Expense[];
   onUpdateExpense: (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => Promise<void>;
   isLoadingWhileUpdating?: boolean;
+  uniqueReasons: string[];
 }
 
-export function LedgerMonthGroup({ monthBucket, expenses, onUpdateExpense, isLoadingWhileUpdating }: LedgerMonthGroupProps) {
+export function LedgerMonthGroup({ monthBucket, expenses, onUpdateExpense, isLoadingWhileUpdating, uniqueReasons }: LedgerMonthGroupProps) {
   if (expenses.length === 0) {
     return null;
   }
@@ -40,6 +41,7 @@ export function LedgerMonthGroup({ monthBucket, expenses, onUpdateExpense, isLoa
               expense={expense} 
               onUpdateExpense={onUpdateExpense}
               isLoadingWhileUpdating={isLoadingWhileUpdating}
+              uniqueReasons={uniqueReasons}
             />
           ))}
         </div>
