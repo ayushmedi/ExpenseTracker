@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion } from "@/components/ui/accordion";
 import { Search } from "lucide-react";
-import { formatCurrency } from "@/lib/utils"; // Added for summary
+// formatCurrency was imported for the removed summary, but might be used by LedgerMonthGroup or LedgerItem, so keep unless unused project-wide.
+// Keeping it for now as it's a util.
 
 interface LedgerProps {
   expenses: Expense[];
@@ -52,13 +53,6 @@ export function Ledger({ expenses, searchTerm, onSearchChange, isLoading, onUpda
 
   const defaultOpenValue = sortedMonthBuckets.length > 0 ? [sortedMonthBuckets[0]] : [];
 
-  const filteredTotalAmount = React.useMemo(() => {
-    if (searchTerm && filteredExpenses.length > 0) {
-      return filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    }
-    return 0;
-  }, [searchTerm, filteredExpenses]);
-
   if (isLoading && expenses.length === 0) {
     return <p className="text-center text-muted-foreground py-10">Loading expenses...</p>;
   }
@@ -81,20 +75,12 @@ export function Ledger({ expenses, searchTerm, onSearchChange, isLoading, onUpda
         />
       </div>
 
-      {searchTerm && filteredExpenses.length > 0 && (
-        <div className="p-4 mt-2 border-t border-b bg-muted rounded-md">
-          <p className="text-lg font-semibold text-foreground text-center">
-            Filtered Total: <span className="text-destructive">{formatCurrency(filteredTotalAmount)}</span>
-          </p>
-        </div>
-      )}
-
       {filteredExpenses.length === 0 && searchTerm && !isLoading && (
          <p className="text-center text-muted-foreground py-10">No expenses match your search.</p>
       )}
 
       {sortedMonthBuckets.length > 0 && (
-        <ScrollArea className="h-[calc(100vh-320px)] md:h-[calc(100vh-280px)]"> {/* Adjust height if summary is shown */}
+        <ScrollArea className="h-[calc(100vh-280px)] md:h-[calc(100vh-240px)]">
           <Accordion type="multiple" defaultValue={defaultOpenValue} className="w-full pr-3">
             {sortedMonthBuckets.map((monthBucket) => (
               <LedgerMonthGroup
