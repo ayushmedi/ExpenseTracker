@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button";
 import { ExpenseFormDialog } from "@/components/ExpenseFormDialog";
 import { IncomeFormDialog } from "@/components/IncomeFormDialog";
 import { Ledger } from "@/components/Ledger";
-import { FAB } from "@/components/FAB";
 import { Logo } from "@/components/Logo";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useIncomes } from "@/hooks/useIncomes";
 import type { ExpenseCreateDto, IncomeCreateDto, Transaction, ExpenseUpdateDto, IncomeUpdateDto } from "@/lib/types";
-import { PlusCircle, TrendingUp, Search, CalendarDays, CalendarRange } from "lucide-react";
+import { PlusCircle, TrendingUp, Search, CalendarDays, CalendarRange, Plus, Minus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { getFormattedMonth } from "@/lib/utils";
@@ -45,7 +44,7 @@ export default function HomePage() {
     const yearTransactions = allTransactions.filter(t => new Date(t.timestamp).getFullYear().toString() === selectedYear);
     const monthBuckets = new Set(yearTransactions.map(t => t.month_bucket));
     return Array.from(monthBuckets)
-      .sort((a, b) => b.localeCompare(a)) // Newest month first in dropdown (e.g. 2023-12 before 2023-11)
+      .sort((a, b) => b.localeCompare(a)) 
       .map(mb => ({ value: mb, label: getFormattedMonth(mb) }));
   }, [allTransactions, selectedYear]);
 
@@ -83,7 +82,7 @@ export default function HomePage() {
 
   const handleYearChange = (year: string) => {
     setSelectedYear(year === "all" ? null : year);
-    setSelectedMonthBucket(null); // Reset month when year changes
+    setSelectedMonthBucket(null); 
   };
 
   const handleMonthChange = (monthBucket: string) => {
@@ -138,7 +137,7 @@ export default function HomePage() {
               </SelectContent>
             </Select>
             
-            <div className="relative sm:col-span-2 lg:col-span-1"> {/* Allow search to span if filters are in 2 cols */}
+            <div className="relative sm:col-span-2 lg:col-span-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 type="search"
@@ -180,7 +179,21 @@ export default function HomePage() {
         )}
       </main>
 
-      <FAB onClick={() => setIsExpenseFormOpen(true)} /> 
+      {/* Mobile FABs */}
+      <Button
+        onClick={() => setIsIncomeFormOpen(true)}
+        className="fixed bottom-20 right-6 h-16 w-16 rounded-full shadow-xl md:hidden bg-green-500 hover:bg-green-600 text-white"
+        aria-label="Add new income"
+      >
+        <Plus className="h-8 w-8" />
+      </Button>
+      <Button
+        onClick={() => setIsExpenseFormOpen(true)}
+        className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-xl md:hidden bg-red-500 hover:bg-red-600 text-white"
+        aria-label="Add new expense"
+      >
+        <Minus className="h-8 w-8" />
+      </Button>
 
       <ExpenseFormDialog
         isOpen={isExpenseFormOpen}
@@ -204,5 +217,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
