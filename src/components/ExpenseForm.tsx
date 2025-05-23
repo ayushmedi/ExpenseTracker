@@ -80,6 +80,13 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
     setIsSuggestionsOpen(false);
   };
 
+  const handleReasonKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && suggestedReasons.length === 1) {
+      event.preventDefault(); // Prevent form submission or newline
+      handleReasonSelect(suggestedReasons[0]);
+    }
+  };
+
 
   return (
     <Form {...form}>
@@ -121,6 +128,7 @@ export function ExpenseForm({ onSubmit, onCancel, isLoading, uniqueReasons }: Ex
                         field.onChange(e);
                         setReasonInput(e.target.value);
                       }}
+                      onKeyDown={handleReasonKeyDown} // Add keydown handler
                       rows={2}
                     />
                   </FormControl>
