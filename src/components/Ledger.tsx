@@ -4,16 +4,12 @@
 import * as React from "react";
 import type { Transaction, ExpenseUpdateDto, IncomeUpdateDto } from "@/lib/types";
 import { LedgerMonthGroup } from "./LedgerMonthGroup";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion } from "@/components/ui/accordion";
-import { Search } from "lucide-react";
 
 interface LedgerProps {
   transactions: Transaction[];
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
-  isLoading: boolean;
+  isLoading: boolean; // To show general loading for the list if needed
   onUpdateExpense: (id: string, data: ExpenseUpdateDto) => Promise<void>;
   onUpdateIncome: (id: string, data: IncomeUpdateDto) => Promise<void>;
   isLoadingWhileUpdating?: boolean;
@@ -27,8 +23,6 @@ interface GroupedTransactions {
 
 export function Ledger({ 
   transactions, 
-  searchTerm, 
-  onSearchChange, 
   isLoading, 
   onUpdateExpense, 
   onUpdateIncome,
@@ -36,18 +30,9 @@ export function Ledger({
   uniqueExpenseReasons,
   uniqueIncomeReasons 
 }: LedgerProps) {
-  const filteredTransactions = React.useMemo(() => {
-    if (!searchTerm) return transactions;
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return transactions.filter(
-      (item) =>
-        item.reason?.toLowerCase().includes(lowerSearchTerm) ||
-        String(item.amount).includes(lowerSearchTerm)
-    );
-  }, [transactions, searchTerm]);
 
   const groupedTransactions = React.useMemo(() => {
-    return filteredTransactions.reduce((acc, transaction) => {
+    return transactions.reduce((acc, transaction) => {
       const { month_bucket } = transaction;
       if (!acc[month_bucket]) {
         acc[month_bucket] = [];
@@ -55,42 +40,40 @@ export function Ledger({
       acc[month_bucket].push(transaction);
       return acc;
     }, {} as GroupedTransactions);
-  }, [filteredTransactions]);
+  }, [transactions]);
 
   const sortedMonthBuckets = React.useMemo(() => {
     return Object.keys(groupedTransactions).sort((a, b) => b.localeCompare(a)); // Newest month first
   }, [groupedTransactions]);
 
+  // Open the most recent month in the filtered list by default
   const defaultOpenValue = sortedMonthBuckets.length > 0 ? [sortedMonthBuckets[0]] : [];
 
+  // Note: Specific "loading" and "no transactions" messages are now handled by the parent (page.tsx)
+  // This component now assumes it will be rendered if there are transactions to display,
+  // or it will show its own loading state if `isLoading` is true while `transactions` might be empty during a fetch.
+
   if (isLoading && transactions.length === 0) {
+     // This might still be useful if transactions are being re-fetched based on filters
+     // and the parent wants to show a loading state specifically for the ledger section.
     return <p className="text-center text-muted-foreground py-10">Loading transactions...</p>;
   }
-
+  
+  // If transactionsForDisplay in page.tsx is empty, this component won't be rendered by page.tsx logic.
+  // So, an explicit "No transactions" check here is mostly a fallback.
   if (transactions.length === 0 && !isLoading) {
-    return <p className="text-center text-muted-foreground py-10">No transactions yet. Add your first one!</p>;
+    return <p className="text-center text-muted-foreground py-10">No transactions available for the current selection.</p>;
   }
   
   return (
     <div className="space-y-6">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search by reason or amount..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 h-12 text-base"
-          aria-label="Search transactions"
-        />
-      </div>
-
-      {filteredTransactions.length === 0 && searchTerm && !isLoading && (
-         <p className="text-center text-muted-foreground py-10">No transactions match your search.</p>
-      )}
+      {/* Search input has been moved to page.tsx */}
+      {/* Conditional messages for no search results are also in page.tsx */}
 
       {sortedMonthBuckets.length > 0 && (
-        <ScrollArea className="h-[calc(100vh-280px)] md:h-[calc(100vh-240px)]">
+        // Adjusted height: 280px (header+footer+padding) + ~60px for new filter row = ~340px
+        // md: 240px (header+footer+padding) + ~60px = ~300px
+        <ScrollArea className="h-[calc(100vh-380px)] md:h-[calc(100vh-340px)]">
           <Accordion type="multiple" defaultValue={defaultOpenValue} className="w-full pr-3">
             {sortedMonthBuckets.map((monthBucket) => (
               <LedgerMonthGroup

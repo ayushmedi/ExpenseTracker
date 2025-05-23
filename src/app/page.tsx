@@ -11,23 +11,65 @@ import { Logo } from "@/components/Logo";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useIncomes } from "@/hooks/useIncomes";
 import type { ExpenseCreateDto, IncomeCreateDto, Transaction, ExpenseUpdateDto, IncomeUpdateDto } from "@/lib/types";
-import { PlusCircle, TrendingUp } from "lucide-react";
+import { PlusCircle, TrendingUp, Search, CalendarDays, CalendarRange } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { getFormattedMonth } from "@/lib/utils";
 
 export default function HomePage() {
   const [isExpenseFormOpen, setIsExpenseFormOpen] = React.useState(false);
   const [isIncomeFormOpen, setIsIncomeFormOpen] = React.useState(false);
-  const [searchTerm, setSearchTerm] = React.useState("");
-
+  
   const { expenses, uniqueReasons: uniqueExpenseReasons, isLoading: isLoadingExpenses, addExpense, updateExpense, error: expenseError } = useExpenses();
   const { incomes, uniqueIncomeReasons, isLoading: isLoadingIncomes, addIncome, updateIncome, error: incomeError } = useIncomes();
 
-  const transactions: Transaction[] = React.useMemo(() => {
+  const [selectedYear, setSelectedYear] = React.useState<string | null>(null);
+  const [selectedMonthBucket, setSelectedMonthBucket] = React.useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = React.useState("");
+
+  const allTransactions: Transaction[] = React.useMemo(() => {
     const combined: Transaction[] = [
       ...expenses.map(exp => ({ ...exp, type: 'expense' as const })),
       ...incomes.map(inc => ({ ...inc, type: 'income' as const })),
     ];
     return combined.sort((a, b) => b.timestamp - a.timestamp);
   }, [expenses, incomes]);
+
+  const availableYears = React.useMemo(() => {
+    const years = new Set(allTransactions.map(t => new Date(t.timestamp).getFullYear().toString()));
+    return Array.from(years).sort((a, b) => parseInt(b) - parseInt(a));
+  }, [allTransactions]);
+
+  const availableMonthBucketsInSelectedYear = React.useMemo(() => {
+    if (!selectedYear) return [];
+    const yearTransactions = allTransactions.filter(t => new Date(t.timestamp).getFullYear().toString() === selectedYear);
+    const monthBuckets = new Set(yearTransactions.map(t => t.month_bucket));
+    return Array.from(monthBuckets)
+      .sort((a, b) => b.localeCompare(a))
+      .map(mb => ({ value: mb, label: getFormattedMonth(mb) }));
+  }, [allTransactions, selectedYear]);
+
+  const transactionsForDisplay = React.useMemo(() => {
+    let filtered = allTransactions;
+
+    if (selectedYear) {
+      filtered = filtered.filter(t => new Date(t.timestamp).getFullYear().toString() === selectedYear);
+    }
+
+    if (selectedMonthBucket) {
+      filtered = filtered.filter(t => t.month_bucket === selectedMonthBucket);
+    }
+
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (item) =>
+          item.reason?.toLowerCase().includes(lowerSearchTerm) ||
+          String(item.amount).includes(lowerSearchTerm)
+      );
+    }
+    return filtered;
+  }, [allTransactions, selectedYear, selectedMonthBucket, searchTerm]);
 
   const handleAddExpense = async (data: ExpenseCreateDto) => {
     await addExpense(data);
@@ -38,6 +80,15 @@ export default function HomePage() {
   };
   
   const globalLoading = isLoadingExpenses || isLoadingIncomes;
+
+  const handleYearChange = (year: string) => {
+    setSelectedYear(year === "all" ? null : year);
+    setSelectedMonthBucket(null); // Reset month when year changes
+  };
+
+  const handleMonthChange = (monthBucket: string) => {
+    setSelectedMonthBucket(monthBucket === "all" ? null : monthBucket);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -59,17 +110,74 @@ export default function HomePage() {
         {expenseError && <p className="text-destructive text-center mb-4">Error loading expenses: {expenseError.message}</p>}
         {incomeError && <p className="text-destructive text-center mb-4">Error loading income: {incomeError.message}</p>}
         
-        <Ledger
-          transactions={transactions}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          isLoading={globalLoading && transactions.length === 0} 
-          onUpdateExpense={updateExpense as (id: string, data: ExpenseUpdateDto) => Promise<void>} // Cast for specific DTO
-          onUpdateIncome={updateIncome as (id: string, data: IncomeUpdateDto) => Promise<void>}   // Cast for specific DTO
-          isLoadingWhileUpdating={isLoadingExpenses || isLoadingIncomes} 
-          uniqueExpenseReasons={uniqueExpenseReasons}
-          uniqueIncomeReasons={uniqueIncomeReasons}
-        />
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Select onValueChange={handleYearChange} value={selectedYear || "all"}>
+              <SelectTrigger className="h-12 text-base" aria-label="Select year">
+                <CalendarDays className="mr-2 h-5 w-5 text-muted-foreground" />
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Years</SelectItem>
+                {availableYears.map(year => (
+                  <SelectItem key={year} value={year}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select onValueChange={handleMonthChange} value={selectedMonthBucket || "all"} disabled={!selectedYear}>
+              <SelectTrigger className="h-12 text-base" aria-label="Select month">
+                <CalendarRange className="mr-2 h-5 w-5 text-muted-foreground" />
+                <SelectValue placeholder="Select Month" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Months</SelectItem>
+                {availableMonthBucketsInSelectedYear.map(month => (
+                  <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <div className="relative md:col-span-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search by reason or amount..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 h-12 text-base"
+                aria-label="Search transactions"
+              />
+            </div>
+          </div>
+        </div>
+
+        {globalLoading && allTransactions.length === 0 && (
+          <p className="text-center text-muted-foreground py-10">Loading transactions...</p>
+        )}
+        {!globalLoading && allTransactions.length === 0 && (
+           <p className="text-center text-muted-foreground py-10">No transactions yet. Add your first income or expense!</p>
+        )}
+        {!globalLoading && allTransactions.length > 0 && transactionsForDisplay.length === 0 && (
+          <p className="text-center text-muted-foreground py-10">
+            {searchTerm 
+              ? "No transactions match your search criteria for the selected period."
+              : "No transactions found for the selected period."
+            }
+          </p>
+        )}
+        
+        {transactionsForDisplay.length > 0 && (
+          <Ledger
+            transactions={transactionsForDisplay}
+            isLoading={globalLoading && transactionsForDisplay.length === 0} 
+            onUpdateExpense={updateExpense as (id: string, data: ExpenseUpdateDto) => Promise<void>}
+            onUpdateIncome={updateIncome as (id: string, data: IncomeUpdateDto) => Promise<void>}
+            isLoadingWhileUpdating={isLoadingExpenses || isLoadingIncomes} 
+            uniqueExpenseReasons={uniqueExpenseReasons}
+            uniqueIncomeReasons={uniqueIncomeReasons}
+          />
+        )}
       </main>
 
       <FAB onClick={() => setIsExpenseFormOpen(true)} /> 
