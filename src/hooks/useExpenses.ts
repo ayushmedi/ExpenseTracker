@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import type { Expense, ExpenseCreateDto } from '@/lib/types';
 import { getExpenseRepository } from '@/lib/store';
@@ -42,10 +43,7 @@ export function useExpenses() {
     try {
       await repository.addExpense(data);
       await fetchExpenses(); // Refetch all data
-      toast({
-        title: "Success",
-        description: "Expense added successfully.",
-      });
+      // Removed success toast
       setError(null);
     } catch (e) {
       setError(e as Error);
