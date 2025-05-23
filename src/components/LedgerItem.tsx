@@ -5,7 +5,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
-import type { Expense, ExpenseCreateDto } from "@/lib/types";
+import type { Transaction, ExpenseUpdateDto, IncomeUpdateDto } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,71 +15,71 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Pencil, Check, X } from "lucide-react";
 
 interface LedgerItemProps {
-  expense: Expense;
-  onUpdateExpense: (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => Promise<void>;
+  transaction: Transaction;
+  onUpdateTransaction: (id: string, data: ExpenseUpdateDto | IncomeUpdateDto) => Promise<void>;
+  uniqueReasonsForType: string[];
   isLoadingWhileUpdating?: boolean;
-  uniqueReasons: string[];
 }
 
-const editExpenseFormSchema = z.object({
+const editTransactionFormSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
   reason: z.string().max(100, "Reason is too long.").optional(),
 });
 
-type EditExpenseFormValues = z.infer<typeof editExpenseFormSchema>;
+type EditTransactionFormValues = z.infer<typeof editTransactionFormSchema>;
 
-export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating, uniqueReasons }: LedgerItemProps) {
+export function LedgerItem({ transaction, onUpdateTransaction, uniqueReasonsForType, isLoadingWhileUpdating }: LedgerItemProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
 
-  const [reasonInput, setReasonInput] = React.useState(expense.reason || "");
+  const [reasonInput, setReasonInput] = React.useState(transaction.reason || "");
   const [suggestedReasons, setSuggestedReasons] = React.useState<string[]>([]);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
 
-  const form = useForm<EditExpenseFormValues>({
-    resolver: zodResolver(editExpenseFormSchema),
+  const form = useForm<EditTransactionFormValues>({
+    resolver: zodResolver(editTransactionFormSchema),
     defaultValues: {
-      amount: expense.amount,
-      reason: expense.reason || "",
+      amount: transaction.amount,
+      reason: transaction.reason || "",
     },
   });
 
   React.useEffect(() => {
     if (isEditing) {
       form.reset({
-        amount: expense.amount,
-        reason: expense.reason || "",
+        amount: transaction.amount,
+        reason: transaction.reason || "",
       });
-      setReasonInput(expense.reason || ""); // Reset reasonInput when editing starts/resets
+      setReasonInput(transaction.reason || "");
       setTimeout(() => {
         form.setFocus('amount');
       }, 0);
     }
-  }, [isEditing, expense, form]);
+  }, [isEditing, transaction, form]);
 
   React.useEffect(() => {
-    if (reasonInput.length > 0 && isEditing) { // Only show suggestions in edit mode
-      const filtered = uniqueReasons
+    if (reasonInput.length > 0 && isEditing) {
+      const filtered = uniqueReasonsForType
         .filter((r) => r.toLowerCase().includes(reasonInput.toLowerCase()))
         .slice(0, 5);
       setSuggestedReasons(filtered);
     } else {
       setSuggestedReasons([]);
     }
-  }, [reasonInput, uniqueReasons, isEditing]);
+  }, [reasonInput, uniqueReasonsForType, isEditing]);
 
-  const handleEditSubmit = async (data: EditExpenseFormValues) => {
+  const handleEditSubmit = async (data: EditTransactionFormValues) => {
     setIsSaving(true);
     try {
-      await onUpdateExpense(expense.id, {
+      await onUpdateTransaction(transaction.id, {
         amount: data.amount,
         reason: data.reason || undefined,
       });
       setIsEditing(false);
-      setReasonInput(data.reason || ""); // Update reasonInput after successful save
-      setIsSuggestionsOpen(false); // Close suggestions popover
+      setReasonInput(data.reason || "");
+      setIsSuggestionsOpen(false);
     } catch (error) {
-      console.error("Failed to update expense:", error);
+      console.error("Failed to update transaction:", error);
     } finally {
       setIsSaving(false);
     }
@@ -88,10 +88,10 @@ export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating, u
   const handleCancelEdit = () => {
     setIsEditing(false);
     form.reset({
-      amount: expense.amount,
-      reason: expense.reason || "",
+      amount: transaction.amount,
+      reason: transaction.reason || "",
     });
-    setReasonInput(expense.reason || "");
+    setReasonInput(transaction.reason || "");
     setIsSuggestionsOpen(false);
   };
 
@@ -112,6 +112,14 @@ export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating, u
       }
     }
   };
+
+  const displayAmount = transaction.type === 'income' 
+    ? `+${formatCurrency(transaction.amount)}` 
+    : `-${formatCurrency(transaction.amount)}`;
+  const amountColorClass = transaction.type === 'income' ? 'text-green-600' : 'text-destructive';
+  const defaultReasonText = transaction.type === 'income' ? "Unspecified Income" : "Unspecified Expense";
+  const reasonPlaceholder = transaction.type === 'income' ? "Edit source/reason (optional)" : "Edit reason (optional)";
+
 
   if (isEditing) {
     return (
@@ -149,7 +157,7 @@ export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating, u
                           {...field}
                           rows={1}
                           className="text-sm resize-none"
-                          placeholder="Edit reason (optional)"
+                          placeholder={reasonPlaceholder}
                           aria-label="Edit reason"
                           value={reasonInput}
                           onChange={(e) => {
@@ -157,7 +165,7 @@ export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating, u
                             field.onChange(e);
                             setReasonInput(newValue);
                             if (newValue.length > 0) {
-                              const filteredOnChange = uniqueReasons
+                              const filteredOnChange = uniqueReasonsForType
                                 .filter((r) => r.toLowerCase().includes(newValue.toLowerCase()))
                                 .slice(0, 5);
                               if (filteredOnChange.length > 0) {
@@ -199,7 +207,7 @@ export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating, u
               )}
             />
              <p className="text-xs text-muted-foreground self-start pt-1">
-                {formatDate(expense.timestamp, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {formatDate(transaction.timestamp, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
              </p>
           </div>
           <div className="flex justify-end space-x-2 p-2 border-t bg-muted/30">
@@ -221,19 +229,19 @@ export function LedgerItem({ expense, onUpdateExpense, isLoadingWhileUpdating, u
     <div className="flex justify-between items-center py-3 px-1 border-b border-border/60 last:border-b-0 hover:bg-muted/30 transition-colors rounded-md group">
       <div className="flex-grow">
         <p className="font-medium text-foreground">
-          {expense.reason || "Unspecified"}
+          {transaction.reason || defaultReasonText}
         </p>
         <p className="text-xs text-muted-foreground">
-          {formatDate(expense.timestamp, {  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          {formatDate(transaction.timestamp, {  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
       <div className="flex items-center space-x-2">
-        <p className="text-lg font-semibold text-destructive tabular-nums">
-          -{formatCurrency(expense.amount)}
+        <p className={`text-lg font-semibold tabular-nums ${amountColorClass}`}>
+          {displayAmount}
         </p>
         <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} disabled={isLoadingWhileUpdating} className="h-8 w-8 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
           <Pencil className="h-4 w-4" />
-          <span className="sr-only">Edit expense</span>
+          <span className="sr-only">Edit transaction</span>
         </Button>
       </div>
     </div>

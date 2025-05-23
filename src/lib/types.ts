@@ -1,22 +1,29 @@
-export interface Expense {
+
+export interface TransactionBase {
   id: string;
   timestamp: number; // Unix timestamp in milliseconds
-  amount: number;
+  amount: number; // Always positive
   reason?: string;
   month_bucket: string; // YYYY-MM format, derived from local timezone
 }
 
-export type ExpenseCreateDto = Omit<Expense, 'id' | 'timestamp' | 'month_bucket'>;
-
-export interface Income {
-  id: string;
-  timestamp: number; // Unix timestamp in milliseconds
-  amount: number;
-  reason?: string;
-  month_bucket: string; // YYYY-MM format, derived from local timezone
+export interface Expense extends TransactionBase {
+  type: 'expense';
 }
 
-export type IncomeCreateDto = Omit<Income, 'id' | 'timestamp' | 'month_bucket'>;
+export interface Income extends TransactionBase {
+  type: 'income';
+}
+
+export type Transaction = Expense | Income;
+
+// DTOs for creating new entries
+export type ExpenseCreateDto = Omit<Expense, 'id' | 'timestamp' | 'month_bucket' | 'type'>;
+export type IncomeCreateDto = Omit<Income, 'id' | 'timestamp' | 'month_bucket' | 'type'>;
+
+// DTOs for updating entries
+export type ExpenseUpdateDto = Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>;
+export type IncomeUpdateDto = Partial<Pick<IncomeCreateDto, 'amount' | 'reason'>>;
 
 
 // For future enhancements

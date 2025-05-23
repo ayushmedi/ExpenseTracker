@@ -2,32 +2,33 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Income, IncomeCreateDto } from '@/lib/types';
+import type { Income, IncomeCreateDto, IncomeUpdateDto } from '@/lib/types';
 import { getIncomeRepository } from '@/lib/store';
 import { useToast } from "@/hooks/use-toast";
 
 export function useIncomes() {
-  const [incomes, setIncomes] = useState<Income[]>([]); // Will be used later for displaying incomes
+  const [incomes, setIncomes] = useState<Income[]>([]);
   const [uniqueIncomeReasons, setUniqueIncomeReasons] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
   const repository = getIncomeRepository();
 
-  const fetchInitialData = useCallback(async () => {
+  const fetchIncomesAndReasons = useCallback(async () => {
     setIsLoading(true);
     try {
-      // For now, we only fetch unique reasons. Fetching all incomes will be for display later.
-      const fetchedReasons = await repository.getUniqueReasons();
-      // const fetchedIncomes = await repository.getAllIncomes();
-      // setIncomes(fetchedIncomes); 
+      const [fetchedIncomes, fetchedReasons] = await Promise.all([
+        repository.getAllIncomes(),
+        repository.getUniqueReasons()
+      ]);
+      setIncomes(fetchedIncomes);
       setUniqueIncomeReasons(fetchedReasons);
       setError(null);
     } catch (e) {
       setError(e as Error);
       toast({
         title: "Error",
-        description: "Could not load initial income data.",
+        description: "Could not load income data.",
         variant: "destructive",
       });
     } finally {
@@ -36,21 +37,15 @@ export function useIncomes() {
   }, [repository, toast]);
 
   useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+    fetchIncomesAndReasons();
+  }, [fetchIncomesAndReasons]);
 
   const addIncome = useCallback(async (data: IncomeCreateDto) => {
     setIsLoading(true);
     try {
       await repository.addIncome(data);
-      // After adding, refetch unique reasons as it might have changed
-      const fetchedReasons = await repository.getUniqueReasons();
-      setUniqueIncomeReasons(fetchedReasons);
-      // We'll refetch all incomes when we implement the display
-      // const fetchedIncomes = await repository.getAllIncomes();
-      // setIncomes(fetchedIncomes);
+      await fetchIncomesAndReasons(); // Refetch all data
       setError(null);
-      // No success toast for income added, similar to expense
     } catch (e) {
       setError(e as Error);
       toast({
@@ -61,16 +56,37 @@ export function useIncomes() {
     } finally {
       setIsLoading(false);
     }
-  }, [repository, toast]);
+  }, [repository, fetchIncomesAndReasons, toast]);
 
-  // updateIncome will be added later when income ledger display is implemented
+  const updateIncome = useCallback(async (id: string, data: IncomeUpdateDto) => {
+    setIsLoading(true);
+    try {
+      const updated = await repository.updateIncome(id, data);
+      if (updated) {
+        await fetchIncomesAndReasons(); // Refetch all data
+      } else {
+        throw new Error("Income not found or update failed.");
+      }
+      setError(null);
+    } catch (e) {
+      setError(e as Error);
+      toast({
+        title: "Error",
+        description: (e as Error).message || "Could not update income.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [repository, fetchIncomesAndReasons, toast]);
 
   return {
-    incomes, // For future use
+    incomes,
     uniqueIncomeReasons,
     isLoading,
     error,
     addIncome,
-    refreshIncomes: fetchInitialData, // Expose a refresh function
+    updateIncome,
+    refreshIncomes: fetchIncomesAndReasons,
   };
 }

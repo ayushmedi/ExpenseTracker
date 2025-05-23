@@ -1,5 +1,5 @@
 
-import type { Expense, ExpenseCreateDto } from "@/lib/types";
+import type { Transaction, ExpenseUpdateDto, IncomeUpdateDto } from "@/lib/types";
 import { LedgerItem } from "./LedgerItem";
 import { getFormattedMonth, formatCurrency } from "@/lib/utils";
 import {
@@ -7,24 +7,36 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { cn } from "@/lib/utils"; // Added cn import
+import { cn } from "@/lib/utils";
 
 interface LedgerMonthGroupProps {
   monthBucket: string;
-  expenses: Expense[];
-  onUpdateExpense: (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => Promise<void>;
+  transactions: Transaction[];
+  onUpdateExpense: (id: string, data: ExpenseUpdateDto) => Promise<void>;
+  onUpdateIncome: (id: string, data: IncomeUpdateDto) => Promise<void>;
   isLoadingWhileUpdating?: boolean;
-  uniqueReasons: string[];
+  uniqueExpenseReasons: string[];
+  uniqueIncomeReasons: string[];
 }
 
-export function LedgerMonthGroup({ monthBucket, expenses, onUpdateExpense, isLoadingWhileUpdating, uniqueReasons }: LedgerMonthGroupProps) {
-  if (expenses.length === 0) {
+export function LedgerMonthGroup({ 
+  monthBucket, 
+  transactions, 
+  onUpdateExpense,
+  onUpdateIncome,
+  isLoadingWhileUpdating, 
+  uniqueExpenseReasons,
+  uniqueIncomeReasons
+}: LedgerMonthGroupProps) {
+  if (transactions.length === 0) {
     return null;
   }
 
-  const totalForMonth = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalForMonth = transactions.reduce((sum, transaction) => {
+    return sum + (transaction.type === 'income' ? transaction.amount : -transaction.amount);
+  }, 0);
 
-  const totalColorClass = totalForMonth > 0 ? 'text-destructive' : 'text-muted-foreground';
+  const totalColorClass = totalForMonth > 0 ? 'text-green-600' : totalForMonth < 0 ? 'text-destructive' : 'text-muted-foreground';
 
   return (
     <AccordionItem value={monthBucket} className="mb-4 border rounded-lg shadow-sm bg-card">
@@ -37,14 +49,14 @@ export function LedgerMonthGroup({ monthBucket, expenses, onUpdateExpense, isLoa
         </div>
       </AccordionTrigger>
       <AccordionContent className="px-6 pb-4">
-        <div className="space-y-1"> {/* Reduced space for denser look */}
-          {expenses.map((expense) => (
+        <div className="space-y-1">
+          {transactions.map((transaction) => (
             <LedgerItem 
-              key={expense.id} 
-              expense={expense} 
-              onUpdateExpense={onUpdateExpense}
+              key={transaction.id} 
+              transaction={transaction} 
+              onUpdateTransaction={transaction.type === 'expense' ? onUpdateExpense : onUpdateIncome}
+              uniqueReasonsForType={transaction.type === 'expense' ? uniqueExpenseReasons : uniqueIncomeReasons}
               isLoadingWhileUpdating={isLoadingWhileUpdating}
-              uniqueReasons={uniqueReasons}
             />
           ))}
         </div>
@@ -52,4 +64,3 @@ export function LedgerMonthGroup({ monthBucket, expenses, onUpdateExpense, isLoa
     </AccordionItem>
   );
 }
-

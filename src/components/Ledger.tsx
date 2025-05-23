@@ -2,63 +2,73 @@
 "use client";
 
 import * as React from "react";
-import type { Expense, ExpenseCreateDto } from "@/lib/types";
+import type { Transaction, ExpenseUpdateDto, IncomeUpdateDto } from "@/lib/types";
 import { LedgerMonthGroup } from "./LedgerMonthGroup";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion } from "@/components/ui/accordion";
 import { Search } from "lucide-react";
-// formatCurrency was imported for the removed summary, but might be used by LedgerMonthGroup or LedgerItem, so keep unless unused project-wide.
-// Keeping it for now as it's a util.
 
 interface LedgerProps {
-  expenses: Expense[];
+  transactions: Transaction[];
   searchTerm: string;
   onSearchChange: (term: string) => void;
   isLoading: boolean;
-  onUpdateExpense: (id: string, data: Partial<Pick<ExpenseCreateDto, 'amount' | 'reason'>>) => Promise<void>;
+  onUpdateExpense: (id: string, data: ExpenseUpdateDto) => Promise<void>;
+  onUpdateIncome: (id: string, data: IncomeUpdateDto) => Promise<void>;
   isLoadingWhileUpdating?: boolean;
-  uniqueReasons: string[];
+  uniqueExpenseReasons: string[];
+  uniqueIncomeReasons: string[];
 }
 
-interface GroupedExpenses {
-  [monthBucket: string]: Expense[];
+interface GroupedTransactions {
+  [monthBucket: string]: Transaction[];
 }
 
-export function Ledger({ expenses, searchTerm, onSearchChange, isLoading, onUpdateExpense, isLoadingWhileUpdating, uniqueReasons }: LedgerProps) {
-  const filteredExpenses = React.useMemo(() => {
-    if (!searchTerm) return expenses;
+export function Ledger({ 
+  transactions, 
+  searchTerm, 
+  onSearchChange, 
+  isLoading, 
+  onUpdateExpense, 
+  onUpdateIncome,
+  isLoadingWhileUpdating, 
+  uniqueExpenseReasons,
+  uniqueIncomeReasons 
+}: LedgerProps) {
+  const filteredTransactions = React.useMemo(() => {
+    if (!searchTerm) return transactions;
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return expenses.filter(
-      (exp) =>
-        exp.reason?.toLowerCase().includes(lowerSearchTerm) ||
-        String(exp.amount).includes(lowerSearchTerm)
+    return transactions.filter(
+      (item) =>
+        item.reason?.toLowerCase().includes(lowerSearchTerm) ||
+        String(item.amount).includes(lowerSearchTerm)
     );
-  }, [expenses, searchTerm]);
+  }, [transactions, searchTerm]);
 
-  const groupedExpenses = React.useMemo(() => {
-    return filteredExpenses.reduce((acc, expense) => {
-      const { month_bucket } = expense;
+  const groupedTransactions = React.useMemo(() => {
+    return filteredTransactions.reduce((acc, transaction) => {
+      const { month_bucket } = transaction;
       if (!acc[month_bucket]) {
         acc[month_bucket] = [];
       }
-      acc[month_bucket].push(expense);
+      acc[month_bucket].push(transaction);
       return acc;
-    }, {} as GroupedExpenses);
-  }, [filteredExpenses]);
+    }, {} as GroupedTransactions);
+  }, [filteredTransactions]);
 
   const sortedMonthBuckets = React.useMemo(() => {
-    return Object.keys(groupedExpenses).sort((a, b) => b.localeCompare(a)); // Newest month first
-  }, [groupedExpenses]);
+    return Object.keys(groupedTransactions).sort((a, b) => b.localeCompare(a)); // Newest month first
+  }, [groupedTransactions]);
 
   const defaultOpenValue = sortedMonthBuckets.length > 0 ? [sortedMonthBuckets[0]] : [];
 
-  if (isLoading && expenses.length === 0) {
-    return <p className="text-center text-muted-foreground py-10">Loading expenses...</p>;
+  if (isLoading && transactions.length === 0) {
+    return <p className="text-center text-muted-foreground py-10">Loading transactions...</p>;
   }
 
-  if (expenses.length === 0 && !isLoading) {
-    return <p className="text-center text-muted-foreground py-10">No expenses yet. Add your first one!</p>;
+  if (transactions.length === 0 && !isLoading) {
+    return <p className="text-center text-muted-foreground py-10">No transactions yet. Add your first one!</p>;
   }
   
   return (
@@ -71,12 +81,12 @@ export function Ledger({ expenses, searchTerm, onSearchChange, isLoading, onUpda
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full pl-10 pr-4 py-2 h-12 text-base"
-          aria-label="Search expenses"
+          aria-label="Search transactions"
         />
       </div>
 
-      {filteredExpenses.length === 0 && searchTerm && !isLoading && (
-         <p className="text-center text-muted-foreground py-10">No expenses match your search.</p>
+      {filteredTransactions.length === 0 && searchTerm && !isLoading && (
+         <p className="text-center text-muted-foreground py-10">No transactions match your search.</p>
       )}
 
       {sortedMonthBuckets.length > 0 && (
@@ -86,10 +96,12 @@ export function Ledger({ expenses, searchTerm, onSearchChange, isLoading, onUpda
               <LedgerMonthGroup
                 key={monthBucket}
                 monthBucket={monthBucket}
-                expenses={groupedExpenses[monthBucket]}
+                transactions={groupedTransactions[monthBucket]}
                 onUpdateExpense={onUpdateExpense}
+                onUpdateIncome={onUpdateIncome}
                 isLoadingWhileUpdating={isLoadingWhileUpdating}
-                uniqueReasons={uniqueReasons}
+                uniqueExpenseReasons={uniqueExpenseReasons}
+                uniqueIncomeReasons={uniqueIncomeReasons}
               />
             ))}
           </Accordion>

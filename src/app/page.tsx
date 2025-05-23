@@ -4,34 +4,40 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { ExpenseFormDialog } from "@/components/ExpenseFormDialog";
-import { IncomeFormDialog } from "@/components/IncomeFormDialog"; // Added
+import { IncomeFormDialog } from "@/components/IncomeFormDialog";
 import { Ledger } from "@/components/Ledger";
 import { FAB } from "@/components/FAB";
 import { Logo } from "@/components/Logo";
 import { useExpenses } from "@/hooks/useExpenses";
-import { useIncomes } from "@/hooks/useIncomes"; // Added
-import type { ExpenseCreateDto, IncomeCreateDto } from "@/lib/types"; // Added IncomeCreateDto
-import { PlusCircle, TrendingUp } from "lucide-react"; // Added TrendingUp
+import { useIncomes } from "@/hooks/useIncomes";
+import type { ExpenseCreateDto, IncomeCreateDto, Transaction, ExpenseUpdateDto, IncomeUpdateDto } from "@/lib/types";
+import { PlusCircle, TrendingUp } from "lucide-react";
 
 export default function HomePage() {
   const [isExpenseFormOpen, setIsExpenseFormOpen] = React.useState(false);
-  const [isIncomeFormOpen, setIsIncomeFormOpen] = React.useState(false); // Added
+  const [isIncomeFormOpen, setIsIncomeFormOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
 
   const { expenses, uniqueReasons: uniqueExpenseReasons, isLoading: isLoadingExpenses, addExpense, updateExpense, error: expenseError } = useExpenses();
-  const { uniqueIncomeReasons, isLoading: isLoadingIncomes, addIncome, error: incomeError } = useIncomes(); // Added
+  const { incomes, uniqueIncomeReasons, isLoading: isLoadingIncomes, addIncome, updateIncome, error: incomeError } = useIncomes();
+
+  const transactions: Transaction[] = React.useMemo(() => {
+    const combined: Transaction[] = [
+      ...expenses.map(exp => ({ ...exp, type: 'expense' as const })),
+      ...incomes.map(inc => ({ ...inc, type: 'income' as const })),
+    ];
+    return combined.sort((a, b) => b.timestamp - a.timestamp);
+  }, [expenses, incomes]);
 
   const handleAddExpense = async (data: ExpenseCreateDto) => {
     await addExpense(data);
-    // Form dialog handles its own closing on successful submit via its onSubmit prop
   };
 
-  const handleAddIncome = async (data: IncomeCreateDto) => { // Added
+  const handleAddIncome = async (data: IncomeCreateDto) => {
     await addIncome(data);
-    // Form dialog handles its own closing
   };
   
-  const globalLoading = isLoadingExpenses || isLoadingIncomes; // Combine loading states
+  const globalLoading = isLoadingExpenses || isLoadingIncomes;
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -53,19 +59,19 @@ export default function HomePage() {
         {expenseError && <p className="text-destructive text-center mb-4">Error loading expenses: {expenseError.message}</p>}
         {incomeError && <p className="text-destructive text-center mb-4">Error loading income: {incomeError.message}</p>}
         
-        {/* Placeholder for combined or tabbed ledger display later */}
         <Ledger
-          expenses={expenses}
+          transactions={transactions}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          isLoading={isLoadingExpenses && expenses.length === 0} 
-          onUpdateExpense={updateExpense}
-          isLoadingWhileUpdating={isLoadingExpenses} 
-          uniqueReasons={uniqueExpenseReasons}
+          isLoading={globalLoading && transactions.length === 0} 
+          onUpdateExpense={updateExpense as (id: string, data: ExpenseUpdateDto) => Promise<void>} // Cast for specific DTO
+          onUpdateIncome={updateIncome as (id: string, data: IncomeUpdateDto) => Promise<void>}   // Cast for specific DTO
+          isLoadingWhileUpdating={isLoadingExpenses || isLoadingIncomes} 
+          uniqueExpenseReasons={uniqueExpenseReasons}
+          uniqueIncomeReasons={uniqueIncomeReasons}
         />
       </main>
 
-      {/* FAB could be context-aware later, or have two FABs if screen space allows */}
       <FAB onClick={() => setIsExpenseFormOpen(true)} /> 
 
       <ExpenseFormDialog
@@ -76,7 +82,7 @@ export default function HomePage() {
         uniqueReasons={uniqueExpenseReasons}
       />
 
-      <IncomeFormDialog // Added
+      <IncomeFormDialog
         isOpen={isIncomeFormOpen}
         onClose={() => setIsIncomeFormOpen(false)}
         onSubmit={handleAddIncome}
