@@ -8,6 +8,17 @@ export interface Expense {
 
 export type ExpenseCreateDto = Omit<Expense, 'id' | 'timestamp' | 'month_bucket'>;
 
+export interface Income {
+  id: string;
+  timestamp: number; // Unix timestamp in milliseconds
+  amount: number;
+  reason?: string;
+  month_bucket: string; // YYYY-MM format, derived from local timezone
+}
+
+export type IncomeCreateDto = Omit<Income, 'id' | 'timestamp' | 'month_bucket'>;
+
+
 // For future enhancements
 export interface Category {
   id: string;
